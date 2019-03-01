@@ -27,6 +27,8 @@ class AudioStreamController extends BaseStreamController {
       Event.AUDIO_TRACK_SWITCHING,
       Event.AUDIO_TRACK_LOADED,
       Event.KEY_LOADED,
+      Event.EME_CONFIGURING,
+      Event.EME_CONFIGURED,
       Event.FRAG_LOADED,
       Event.FRAG_PARSING_INIT_SEGMENT,
       Event.FRAG_PARSING_DATA,
@@ -101,6 +103,8 @@ class AudioStreamController extends BaseStreamController {
     let pos, track, trackDetails, hls = this.hls, config = hls.config;
     // logger.log('audioStream:' + this.state);
     switch (this.state) {
+    case State.EME_CONFIGURING:
+      // don't do anything while EME is being configured
     case State.ERROR:
       // don't do anything in error state to avoid breaking further ...
     case State.PAUSED:
@@ -273,7 +277,7 @@ class AudioStreamController extends BaseStreamController {
         }
         if (frag) {
           // logger.log('      loading frag ' + i +',pos/bufEnd:' + pos.toFixed(3) + '/' + bufferEnd.toFixed(3));
-          if (frag.encrypted) {
+          if (frag.encrypted && !this.hls.config.emeEnabled) {
             logger.log(`Loading key for ${frag.sn} of [${trackDetails.startSN} ,${trackDetails.endSN}],track ${trackId}`);
             this.state = State.KEY_LOADING;
             hls.trigger(Event.KEY_LOADING, { frag: frag });
@@ -479,6 +483,17 @@ class AudioStreamController extends BaseStreamController {
     }
   }
 
+  onEMEConfiguring() {
+    this.state = State.EME_CONFIGURING;
+  }
+
+  onEMEConfigured() {
+    if (this.state === State.EME_CONFIGURING) {
+      this.state = State.IDLE;
+      this.tick();
+    }
+  }
+
   onFragLoaded (data) {
     let fragCurrent = this.fragCurrent,
       fragLoaded = data.frag;
@@ -595,8 +610,8 @@ class AudioStreamController extends BaseStreamController {
 
       let audioSwitch = this.audioSwitch, media = this.media, appendOnBufferFlush = false;
       // Only flush audio from old audio tracks when PTS is known on new audio track
-      if (audioSwitch && media) {
-        if (media.readyState) {
+      if (audioSwitch) {
+        if (media && media.readyState) {
           let currentTime = media.currentTime;
           logger.log('switching audio track : currentTime:' + currentTime);
           if (currentTime >= data.startPTS) {
@@ -699,7 +714,9 @@ class AudioStreamController extends BaseStreamController {
         stats.tbuffered = performance.now();
         hls.trigger(Event.FRAG_BUFFERED, { stats: stats, frag: frag, id: 'audio' });
         let media = this.mediaBuffer ? this.mediaBuffer : this.media;
-        logger.log(`audio buffered : ${TimeRanges.toString(media.buffered)}`);
+        if (media) {
+          logger.log(`audio buffered : ${TimeRanges.toString(media.buffered)}`);
+        }
         if (this.audioSwitch && this.appended) {
           this.audioSwitch = false;
           hls.trigger(Event.AUDIO_TRACK_SWITCHED, { id: this.trackId });
