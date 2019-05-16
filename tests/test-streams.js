@@ -71,12 +71,14 @@ module.exports = {
     'abr': false,
     'blacklist_ua': ['internet explorer']
   },
+  /* // went offline for us :( would be good to replace this for regression test with something mimicking the issue
   issue649: {
     'url': 'https://cdn3.screen9.com/media/c/W/cW87csHkxsgu5TV1qs78aA_auto_hls.m3u8?auth=qlUjeCtbVdtkDfZYrtveTIVUXX1yuSqgF8wfWabzKpX72r-d5upW88-FHuyRRdnZA_1PKRTGAtTt_6Z-aj22kw',
     'description': 'hls.js/issues/649',
     'live': false,
     'abr': false
   },
+  */
   closedCaptions: {
     'url': 'https://playertest.longtailvideo.com/adaptive/captions/playlist.m3u8',
     'description': 'CNN special report, with CC',
@@ -144,10 +146,45 @@ module.exports = {
     blacklist_ua: ['firefox', 'safari', 'internet explorer']
   },
   {
-    widevineLicenseUrl: 'https://cwip-shaka-proxy.appspot.com/no_auth',
-    emeEnabled: true
-  }
-  ),
+    emeEnabled: true,
+    requestMediaKeySystemAccessFunc: function (supportedConfigurations) {
+      const keySystem = 'com.widevine.alpha';
+
+      return window.navigator.requestMediaKeySystemAccess(keySystem, supportedConfigurations);
+    },
+    getEMEInitializationDataFunc: function (levelOrAudioTrack, initDataType, initData) {
+      return Promise.resolve({
+        initDataType,
+        initData
+      });
+    },
+    getEMELicenseFunc: function (levelOrAudioTrack, event) {
+      const licenseServerUrl = 'https://cwip-shaka-proxy.appspot.com/no_auth';
+
+      const licenseXhr = new XMLHttpRequest();
+
+      const licensePromise = new Promise((resolve, reject) => {
+        licenseXhr.onload = function () {
+          resolve(this.response);
+        };
+
+        licenseXhr.onerror = function (err) {
+          if (err) {
+            reject(new Error('License request failed'));
+          }
+        };
+      });
+
+      licenseXhr.responseType = 'arraybuffer';
+
+      licenseXhr.open('POST', licenseServerUrl);
+
+      licenseXhr.send(event.message);
+
+      return licensePromise;
+    },
+    NOTE: 'Configuring EME requires the user to implement EME hooks. See API docs for more information'
+  }),
   audioOnlyMultipleLevels: {
     'url': 'https://s3.amazonaws.com/bob.jwplayer.com/~alex/121628/new_master.m3u8',
     'description': 'Multiple non-alternate audio levels',
@@ -169,5 +206,17 @@ module.exports = {
   pdtOneValue: {
     url: 'https://playertest.longtailvideo.com/adaptive/aviion/manifest.m3u8',
     description: 'One PDT, no discontinuities'
+  },
+  noTrackIntersection: {
+    url: 'https://s3.amazonaws.com/bob.jwplayer.com/%7Ealex/123633/new_master.m3u8',
+    description: 'Audio/video track PTS values do not intersect; 10 second start gap'
+  },
+  // altAudioNoVideoCodecSignaled: {
+  //   url: 'https://d35u71x3nb8v2y.cloudfront.net/4b711b97-513c-4d36-ad29-298ab23a2e5e/3cbf1114-b2f4-4320-afb3-f0f7eeeb8630/playlist.m3u8',
+  //   description: 'Alternate audio track, but no video codec is signaled in the master manifest'
+  // },
+  altAudioAndTracks: {
+    url: 'https://wowzaec2demo.streamlock.net/vod-multitrack/_definst_/smil:ElephantsDream/elephantsdream2.smil/playlist.m3u',
+    description: 'Alternate audio tracks, and multiple VTT tracks'
   }
 };

@@ -5,7 +5,7 @@ design idea is pretty simple :
    - main functionalities are split into several subsystems
    - all subsystems are instantiated by the Hls instance.
    - each subsystem heavily relies on events for internal/external communications.
-   - Events are handled using [EventEmitter](https://nodejs.org/api/events.html)
+   - Events are handled using [EventEmitter3](https://github.com/primus/eventemitter3)
    - bundled for the browser by [webpack](https://webpack.js.org/)
 
 ## Code structure
@@ -14,7 +14,7 @@ design idea is pretty simple :
     - definition of default Hls Config. entry point for conditional compilation (altaudio/subtitle)
   - [src/errors.js][]
     - definition of Hls.ErrorTypes and Hls.ErrorDetails
-  - [src/event-handler.js][]
+  - [src/event-handler.ts][]
     - helper class simplifying Hls event handling, event error catching
   - [src/events.js][]
     - definition of Hls.Events
@@ -28,7 +28,7 @@ design idea is pretty simple :
     - in charge of **monitoring fragment loading speed** (by monitoring the amount of data received from fragment loader `stats.loaded` counter)
      - "expected time of fragment load completion" is computed using "fragment loading instant bandwidth".
      - this time is compared to the "expected time of buffer starvation".
-     - if we have less than 2 fragments buffered and if "expected time of fragment load completion" is bigger than "expected time of buffer starvation" and also bigger than duration needed to load fragment at next quality level (determined by auto quality switch algorithm), current fragment loading is aborted, and a **** event is triggered. this event will be handled by stream-controller.
+     - if we have less than 2 fragments buffered and if "expected time of fragment load completion" is bigger than "expected time of buffer starvation" and also bigger than duration needed to load fragment at next quality level (determined by auto quality switch algorithm), current fragment loading is aborted, and a FRAG_LOAD_EMERGENCY_ABORTED event is triggered. this event will be handled by stream-controller.
   - [src/controller/audio-stream-controller.js][]
     - audio stream controller is in charge of filling audio buffer in case alternate audio tracks are used
     - if buffer is not filled up appropriately (i.e. as per defined maximum buffer size, it will trigger the following actions:
@@ -52,13 +52,6 @@ design idea is pretty simple :
         - trigger BUFFER_FLUSHED event upon successful buffer flushing
   - [src/controller/cap-level-controller.js][]
     - in charge of determining best quality level to actual size (dimensions: width and height) of the player
-  - [src/controller/ewma-bandwidth-estimator.js][]
-    - Exponential Weighted Moving Average bandwidth estimator, heavily inspired from shaka-player
-      - Tracks bandwidth samples and estimates available bandwidth, based on the minimum of two exponentially-weighted moving averages with different half-lives.
-      - one fast average with a short half-life: useful to quickly react to bandwidth drop and switch rendition down quickly
-      - one slow average with a long half-life: useful to slowly react to bandwidth increase and avoid switching up rendition to quickly
-      - bandwidth estimate is Math.min(fast average,slow average)
-      - average half-life are configurable , refer to abrEwma* config params
   - [src/controller/fps-controller.js][]
     - in charge of monitoring frame rate, and fire FPS_DROP event in case FPS drop exceeds configured threshold. disabled for now.
   - [src/controller/id3-track-controller.js](../src/controller/id3-track-controller.js)
@@ -179,19 +172,19 @@ design idea is pretty simple :
   - [src/loader/fragment-loader.js][]
     - in charge of loading fragments, use xhr-loader if not overrided by user config
   - [src/loader/key-loader.js][]
-   - in charge of loading decryption key    
+    - in charge of loading decryption key    
   - [src/loader/playlist-loader.js][]
-   - in charge of loading manifest, and level playlists, use xhr-loader if not overrided by user config.
+    - in charge of loading manifest, and level playlists, use xhr-loader if not overrided by user config.
   - [src/remux/dummy-remuxer.js][]
-   - example dummy remuxer
+    - example dummy remuxer
   - [src/remux/mp4-generator.js][]
-   - in charge of generating MP4 boxes
-     - generate Init Segment (moov)
-     - generate samples Box (moof and mdat)
+     - in charge of generating MP4 boxes
+       - generate Init Segment (moov)
+       - generate samples Box (moof and mdat)
   - [src/remux/mp4-remuxer.js][]
-   - in charge of converting AVC/AAC/MP3 samples provided by demuxer into fragmented ISO BMFF boxes, compatible with MediaSource
-   - this remuxer is able to deal with small gaps between fragments and ensure timestamp continuity. it is also able to create audio padding (silent AAC audio frames) in case there is a significant audio 'hole' in the stream.
-   - it notifies remuxing completion using events (```FRAG_PARSING_INIT_SEGMENT```, ```FRAG_PARSING_DATA``` and ```FRAG_PARSED```)
+    - in charge of converting AVC/AAC/MP3 samples provided by demuxer into fragmented ISO BMFF boxes, compatible with MediaSource
+    - this remuxer is able to deal with small gaps between fragments and ensure timestamp continuity. it is also able to create audio padding (silent AAC audio frames) in case there is a significant audio 'hole' in the stream.
+    - it notifies remuxing completion using events (```FRAG_PARSING_INIT_SEGMENT```, ```FRAG_PARSING_DATA``` and ```FRAG_PARSED```)
   - [src/utils/attr-list.js][]
     - Attribute List parsing helper class, used by playlist-loader
   - [src/utils/binary-search.js][]
@@ -202,6 +195,13 @@ design idea is pretty simple :
     - Default CC renderer. Translates Screen objects from cea-608-parser into HTML5 VTTCue objects, rendered by the video tag
   - [src/utils/ewma.js][]
     - compute [exponential weighted moving average](https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average)
+  - [src/utils/ewma-bandwidth-estimator.js][]
+    - Exponential Weighted Moving Average bandwidth estimator, heavily inspired from shaka-player
+      - Tracks bandwidth samples and estimates available bandwidth, based on the minimum of two exponentially-weighted moving averages with different half-lives.
+      - one fast average with a short half-life: useful to quickly react to bandwidth drop and switch rendition down quickly
+      - one slow average with a long half-life: useful to slowly react to bandwidth increase and avoid switching up rendition to quickly
+      - bandwidth estimate is Math.min(fast average,slow average)
+      - average half-life are configurable , refer to abrEwma* config params
   - [src/utils/hex.js][]
     - Hex dump utils, useful for debug
   - [src/utils/logger.js][]
@@ -218,7 +218,7 @@ design idea is pretty simple :
 
 [src/config.js]: ../src/config.js
 [src/errors.js]: ../src/errors.js
-[src/event-handler.js]: ../src/event-handler.js
+[src/event-handler.ts]: ../src/event-handler.ts
 [src/events.js]: ../src/events.js
 [src/hls.js]: ../src/hls.js
 [src/index.js]: ../src/index.js

@@ -40,6 +40,7 @@
   - [`liveSyncDuration`](#livesyncduration)
   - [`liveMaxLatencyDuration`](#livemaxlatencyduration)
   - [`liveDurationInfinity`](#livedurationinfinity)
+  - [`liveBackBufferLength`](#livebackbufferlength)
   - [`enableWorker`](#enableworker)
   - [`enableSoftwareAES`](#enablesoftwareaes)
   - [`startLevel`](#startlevel)
@@ -74,6 +75,11 @@
   - [`abrBandWidthUpFactor`](#abrbandwidthupfactor)
   - [`abrMaxWithRealBitrate`](#abrmaxwithrealbitrate)
   - [`minAutoBitrate`](#minautobitrate)
+  - [`emeEnabled`](#emeEnabled)
+  - [`emeInitDataInFrag`](#emeInitDataInFrag)
+  - [`requestMediaKeySystemAccessFunc`](#requestMediaKeySystemAccessFunc)
+  - [`getEMEInitializationDataFunc`](#getEMEInitializationDataFunc)
+  - [`getEMELicenseFunc`](#getEMELicenseFunc)
 - [Video Binding/Unbinding API](#video-bindingunbinding-api)
   - [`hls.attachMedia(videoElement)`](#hlsattachmediavideoelement)
   - [`hls.detachMedia()`](#hlsdetachmedia)
@@ -88,6 +94,8 @@
   - [`hls.startLevel`](#hlsstartlevel)
   - [`hls.autoLevelEnabled`](#hlsautolevelenabled)
   - [`hls.autoLevelCapping`](#hlsautolevelcapping)
+  - [`hls.capLevelToPlayerSize`](#hlscapleveltoplayersize)
+  - [`hls.bandwidthEstimate`](#hlsbandwidthestimate)
 - [Version Control](#version-control)
   - [`Hls.version`](#hlsversion)
 - [Network Loading Control API](#network-loading-control-api)
@@ -132,7 +140,7 @@ Invoke the following static method: `Hls.isSupported()` to check whether your br
   <script src="https://cdn.jsdelivr.net/npm/hls.js@latest"></script>
   <script>
     if (Hls.isSupported()) {
- 	    console.log("hello hls.js!");
+      console.log("hello hls.js!");
     }
   </script>
 ```
@@ -157,7 +165,7 @@ Let's
       hls.attachMedia(video);
       // MEDIA_ATTACHED event is fired by hls object once MediaSource is ready
       hls.on(Hls.Events.MEDIA_ATTACHED, function () {
-		    console.log("video and hls.js are now bound together !");
+        console.log("video and hls.js are now bound together !");
       });
     }
   </script>
@@ -225,7 +233,7 @@ See sample code below to listen to errors:
     var errorFatal = data.fatal;
 
     switch(data.details) {
-      case hls.ErrorDetails.FRAG_LOAD_ERROR:
+      case Hls.ErrorDetails.FRAG_LOAD_ERROR:
         // ....
         break;
       default:
@@ -236,7 +244,7 @@ See sample code below to listen to errors:
 
 #### Fatal Error Recovery
 
-Hls.js provides means to 'try to' recover fatal network and media errors, through these 2 methods:
+hls.js provides means to 'try to' recover fatal network and media errors, through these 2 methods:
 
 ##### `hls.startLoad()`
 
@@ -292,9 +300,10 @@ Configuration parameters could be provided to hls.js upon instantiation of `Hls`
 ```js
    var config = {
       autoStartLoad: true,
-  	  startPosition : -1,
-      capLevelToPlayerSize: false,
+      startPosition: -1,
       debug: false,
+      capLevelOnFPSDrop: false,
+      capLevelToPlayerSize: false,
       defaultAudioCodec: undefined,
       initialLiveManifestSize: 1,
       maxBufferLength: 30,
@@ -304,47 +313,60 @@ Configuration parameters could be provided to hls.js upon instantiation of `Hls`
       lowBufferWatchdogPeriod: 0.5,
       highBufferWatchdogPeriod: 3,
       nudgeOffset: 0.1,
-      nudgeMaxRetry : 3,
-      maxFragLookUpTolerance: 0.2,
+      nudgeMaxRetry: 3,
+      maxFragLookUpTolerance: 0.25,
       liveSyncDurationCount: 3,
-      liveMaxLatencyDurationCount: 10,
+      liveMaxLatencyDurationCount: Infinity,
       enableWorker: true,
       enableSoftwareAES: true,
       manifestLoadingTimeOut: 10000,
       manifestLoadingMaxRetry: 1,
-      manifestLoadingRetryDelay: 500,
-      manifestLoadingMaxRetryTimeout : 64000,
+      manifestLoadingRetryDelay: 1000,
+      manifestLoadingMaxRetryTimeout: 64000,
       startLevel: undefined,
       levelLoadingTimeOut: 10000,
       levelLoadingMaxRetry: 4,
-      levelLoadingRetryDelay: 500,
+      levelLoadingRetryDelay: 1000,
       levelLoadingMaxRetryTimeout: 64000,
       fragLoadingTimeOut: 20000,
       fragLoadingMaxRetry: 6,
-      fragLoadingRetryDelay: 500,
+      fragLoadingRetryDelay: 1000,
       fragLoadingMaxRetryTimeout: 64000,
       startFragPrefetch: false,
+      fpsDroppedMonitoringPeriod: 5000,
+      fpsDroppedMonitoringThreshold: 0.2,
       appendErrorMaxRetry: 3,
       loader: customLoader,
       fLoader: customFragmentLoader,
       pLoader: customPlaylistLoader,
       xhrSetup: XMLHttpRequestSetupCallback,
       fetchSetup: FetchSetupCallback,
-      abrController: customAbrController,
+      abrController: AbrController,
+      bufferController: BufferController,
+      capLevelController: CapLevelController,
+      fpsController: FPSController,
       timelineController: TimelineController,
       enableWebVTT: true,
       enableCEA708Captions: true,
       stretchShortVideoTrack: false,
-      maxAudioFramesDrift : 1,
+      maxAudioFramesDrift: 1,
       forceKeyFrameOnDiscontinuity: true,
-      abrEwmaFastLive: 5.0,
+      abrEwmaFastLive: 3.0,
       abrEwmaSlowLive: 9.0,
-      abrEwmaFastVoD: 4.0,
-      abrEwmaSlowVoD: 15.0,
+      abrEwmaFastVoD: 3.0,
+      abrEwmaSlowVoD: 9.0,
       abrEwmaDefaultEstimate: 500000,
       abrBandWidthFactor: 0.95,
       abrBandWidthUpFactor: 0.7,
-      minAutoBitrate: 0
+      abrMaxWithRealBitrate: false,
+      maxStarvationDelay: 4,
+      maxLoadingDelay: 4,
+      minAutoBitrate: 0,
+      emeEnabled: false,
+      emeInitDataInFrag: true,
+      requestMediaKeySystemAccessFunc: undefined,
+      getEMEInitializationDataFunc: undefined,
+      getEMELicenseFunc: undefined
   };
 
   var hls = new Hls(config);
@@ -461,7 +483,7 @@ Max nb of nudge retries before hls.js raise a fatal BUFFER_STALLED_ERROR
 
 ### `maxFragLookUpTolerance`
 
-(default 0.2s)
+(default 0.25s)
 
 This tolerance factor is used during fragment lookup.
 Instead of checking whether buffered.end is located within [start, end] range, frag lookup will be done by checking  within [start-maxFragLookUpTolerance, end-maxFragLookUpTolerance] range.
@@ -539,6 +561,12 @@ A value too close from `liveSyncDuration` is likely to cause playback stalls.
 Override current Media Source duration to `Infinity` for a live broadcast.
 Useful, if you are building a player which relies on native UI capabilities in modern browsers.
 If you want to have a native Live UI in environments like iOS Safari, Safari, Android Google Chrome, etc. set this value to `true`.
+
+### `liveBackBufferLength`
+
+(default: `Infinity`)
+
+Sets the maximum length of the buffer, in seconds, to keep during a live stream. Any video buffered past this time will be evicted. `Infinity` means no restriction on back buffer length; `0` keeps the minimum amount. The minimum amount is equal to the target duration of a segment to ensure that current playback is not interrupted.
 
 ### `enableWorker`
 
@@ -644,7 +672,7 @@ Note: If `fLoader` or `pLoader` are used, they overwrite `loader`!
       @param stats.tfirst {number} - performance.now() of first received byte
       @param stats.tload {number} - performance.now() on load complete
       @param stats.loaded {number} - nb of loaded bytes
-      @param [stats.bw] {number} - download bandwidth in bit/s
+      @param [stats.bw] {number} - download bandwidth in bits/s
       @param stats.total {number} - total nb of bytes
       @param context {object} - loader context
       @param networkDetails {object} - loader network details (the xhr for default loaders)
@@ -655,7 +683,7 @@ Note: If `fLoader` or `pLoader` are used, they overwrite `loader`!
       @param stats.tfirst {number} - performance.now() of first received byte
       @param stats.loaded {number} - nb of loaded bytes
       @param [stats.total] {number} - total nb of bytes
-      @param [stats.bw] {number} - current download bandwidth in bit/s (monitored by ABR controller to control emergency switch down)
+      @param [stats.bw] {number} - current download bandwidth in bits/s (monitored by ABR controller to control emergency switch down)
       @param context {object} - loader context
       @param data {string/arraybuffer/sharedarraybuffer} - onProgress data (should be defined only if context.progressData === true)
       @param networkDetails {object} - loader network details (the xhr for default loaders)
@@ -735,7 +763,7 @@ class pLoader extends Hls.DefaultConfig.loader {
 }
 
   var hls = new Hls({
-    pLoader : pLoader,
+    pLoader: pLoader,
   });
 
 ```
@@ -889,7 +917,7 @@ parameter should be a boolean
 
 ### `abrEwmaFastLive`
 
-(default: `5.0`)
+(default: `3.0`)
 
 Fast bitrate Exponential moving average half-life, used to compute average bitrate for Live streams.
 Half of the estimate is based on the last abrEwmaFastLive seconds of sample history.
@@ -909,7 +937,7 @@ parameter should be a float greater than [abrEwmaFastLive](#abrewmafastlive)
 
 ### `abrEwmaFastVoD`
 
-(default: `4.0`)
+(default: `3.0`)
 
 Fast bitrate Exponential moving average half-life, used to compute average bitrate for VoD streams.
 Half of the estimate is based on the last abrEwmaFastVoD seconds of sample history.
@@ -919,7 +947,7 @@ parameter should be a float greater than 0
 
 ### `abrEwmaSlowVoD`
 
-(default: `15.0`)
+(default: `9.0`)
 
 Slow bitrate Exponential moving average half-life, used to compute average bitrate for VoD streams.
 Half of the estimate is based on the last abrEwmaSlowVoD seconds of sample history.
@@ -931,7 +959,7 @@ parameter should be a float greater than [abrEwmaFastVoD](#abrewmafastvod)
 
 (default: `500000`)
 
-Default bandwidth estimate in bits/second prior to collecting fragment bandwidth samples.
+Default bandwidth estimate in bits/s prior to collecting fragment bandwidth samples.
 
 parameter should be a float
 
@@ -940,20 +968,20 @@ parameter should be a float
 (default: `0.95`)
 
 Scale factor to be applied against measured bandwidth average, to determine whether we can stay on current or lower quality level.
-If `abrBandWidthFactor * bandwidth average < level.bitrate` then ABR can switch to that level providing that it is equal or less than current level.
+If `abrBandWidthFactor * bandwidth average > level.bitrate` then ABR can switch to that level providing that it is equal or less than current level.
 
 ### `abrBandWidthUpFactor`
 
 (default: `0.7`)
 
 Scale factor to be applied against measured bandwidth average, to determine whether we can switch up to a higher quality level.
-If `abrBandWidthUpFactor * bandwidth average < level.bitrate` then ABR can switch up to that quality level.
+If `abrBandWidthUpFactor * bandwidth average > level.bitrate` then ABR can switch up to that quality level.
 
 ### `abrMaxWithRealBitrate`
 
 (default: `false`)
 
-max bitrate used in ABR by avg measured bitrate
+Max bitrate used in ABR by avg measured bitrate
 i.e. if bitrate signaled in variant manifest for a given level is 2Mb/s but average bitrate measured on this level is 2.5Mb/s,
 then if config value is set to `true`, ABR will use 2.5 Mb/s for this quality level.
 
@@ -964,6 +992,121 @@ then if config value is set to `true`, ABR will use 2.5 Mb/s for this quality le
 Return the capping/min bandwidth value that could be used by automatic level selection algorithm.
 Useful when browser or tab of the browser is not in the focus and bandwidth drops
 
+## Encypted Media Extensions (EME)
+
+hls.js can congfigure EME in the browser using the following configuration. EME support has currently been tested with Widevine DRM on Chrome using a CBCS CMAF stream, and on Firefox using a CTR CMAF stream.
+
+hls.js supports multiple licenses for a stream by creating MediaKeySessions for each level and audioTrack. The configuration hooks will be called for each level and audioTrack found in the manifest so that the Initialization Data used to generate a license request, and the license request itself can be configured for each level and audioTrack.
+
+hls.js also supports EME streams where Initialization Data is not in the fragments. If the user knows their stream does not include Initialization Data in the fragments, the user can set `emeInitDataInFrag` to false, and hls.js will configure EME on the assumption that the user will provide the Initialization Data by other means when their `getEMEInitializationDataFunc` is called.
+
+Note: EME is only available when served over HTTPS. Setting `emeEnabled` for a stream served over HTTP will trigger the `KEY_SYSTEM_NO_ACCESS` error.
+
+### `emeEnabled`
+
+(default: `false`)
+
+Whether to configure EME for the stream, using the `requestMediaKeySystemAccessFunc`, `getEMEInitializationDataFunc`, and `getEMELicenseFunc` hooks. If set, all three hooks must be implemented.
+
+### `emeInitDataInFrag`
+
+(default: `true`)
+
+Whether the stream contains EME Initialization Data in the fragments (likely for most streams). If false, the user will need to have prior knowledge of the Initialization Data to provide when their `getEMEInitializationDataFunc` is called (e.g. by parsing a PSSH box that has been removed from the fragments and provided to the user by other means).
+
+### `requestMediaKeySystemAccessFunc`
+
+(default: `undefined`)
+
+Signature: `(supportedConfigurations: MediaKeySystemConfiguration[]) => Promise<MediaKeySystemAccess>`
+
+The function EME controller will use to get the [MediaKeySystemAccess](https://developer.mozilla.org/en-US/docs/Web/API/MediaKeySystemAccess) object. This allows the user to set the the Key System EME should be configured for (currently, only tested with Widevine DRM). The function is passed a [MediaKeySystemConfiguration](https://developer.mozilla.org/en-US/docs/Web/API/MediaKeySystemConfiguration) array determined from parsing the manifest. The function should return a Promise that resolves to a MediaKeySystemAccess object (by calling `window.navigator.`[requestMediaKeySystemAccess](https://developer.mozilla.org/en-US/docs/Web/API/Navigator/requestMediaKeySystemAccess)). 
+
+See example below.
+
+```js
+  var config = {
+    requestMediaKeySystemAccessFunc: function(supportedConfigurations) {
+      var keySystem = 'com.widevine.alpha'; // User may also try experimental support for Playready
+
+      return window.navigator.requestMediaKeySystemAccess(keySystem, supportedConfigurations);
+    }
+  }
+
+```
+
+### `getEMEInitializationDataFunc`
+
+(default: `undefined`)
+
+Signature: `(levelOrAudioTrack: ` [Level](#Level) `| AudioTrack, initDataType: string | null, initData: ArrayBuffer | null) => Promise<{ initDataType: string; initData: ArrayBuffer }>`
+
+The function EME controller will use to get the [Initialization Data Type](https://w3c.github.io/encrypted-media/format-registry/initdata/index.html#registry) and Intialization Data used to call [generateRequest](https://w3c.github.io/encrypted-media/#dom-mediakeysession-generaterequest) on the [MediaKeySession](https://developer.mozilla.org/en-US/docs/Web/API/MediaKeySession) object. This allows the user to configure the data used to generate the request (e.g. by parsing a PSSH box provided in a level). If the initDataType and initData are discovered in a fragment, they will be passed to this function as well. The level or audioTrack object for the MediaKeySession on which the request will be generated is passed as a parameter so that the user can provide specific Initialization Data Types and Initialization Data for each level and audioTrack if necessary (using the level or audioTrack `url` property). The function should return a Promise that resolves to the following object:
+
+```js
+  {
+    initDataType: string, // See the Initialization Data Type registry above for possible values
+    initData: ArrayBuffer
+  }
+```
+
+See example below.
+
+```js
+  var config = {
+    getEMEInitializationDataFunc: function(levelOrAudioTrack, initDataType, initData) {
+
+      // If modifying the initDataType and initData, the user can do that here
+
+      return Promise.resolve({
+        initDataType,
+        initData
+      });
+    }
+  }
+
+```
+
+### `getEMELicenseFunc`
+
+(default: `undefined`)
+
+Signature: `(levelOrAudioTrack: ` [Level](#Level) ` | AudioTrack, event: MediaKeyMessageEvent) => Promise<ArrayBuffer>`
+
+The function EME controller will use to get the license to update the MediaKeySession with. The level or audioTrack object for the MediaKeySession that will be updated with the license is passed as a parameter so that the user can provide a specific license for each level and audioTrack if necessary (using the level or audioTrack `url` property). The [MediaKeyMessageEvent](https://developer.mozilla.org/en-US/docs/Web/API/MediaKeyMessageEvent) is also passed so the user can access the license request `message` property generated by the MediaKeySession. The function should return a Promise that resolves to an ArrayBuffer representing the license.
+
+See example below.
+
+```js
+  var config = {
+    getEMELicenseFunc: function(levelOrAudioTrack, event) {
+      var licenseServerUrl = ''; // Must be set by user
+
+      var licenseXhr = new XMLHttpRequest();
+
+      var licensePromise = new Promise((resolve, reject) => {
+        licenseXhr.onload = function () {
+          resolve(this.response);
+        };
+
+        licenseXhr.onerror = function (err) {
+          if (err) {
+            reject(new Error('License request failed'));
+          }
+        };
+      });
+
+      licenseXhr.responseType = 'arraybuffer';
+
+      licenseXhr.open('POST', licenseServerUrl);
+
+      licenseXhr.send(event.message);
+
+      return licensePromise;
+    }
+  }
+
+```
 
 ## Video Binding/Unbinding API
 
@@ -1046,6 +1189,17 @@ Default value is `hls.firstLevel`.
 
 Default value is `-1` (no level capping).
 
+### `hls.capLevelToPlayerSize`
+
+- get: Enables or disables level capping. If disabled after previously enabled, `nextLevelSwitch` will be immediately called.
+- set: Whether level capping is enabled.
+
+Default value is set via [`capLevelToPlayerSize`](#capleveltoplayersize) in config.
+
+### `hls.bandwidthEstimate`
+
+get: Returns the current bandwidth estimate in bits/s, if available. Otherwise, `NaN` is returned.
+
 ## Version Control
 
 ### `Hls.version`
@@ -1103,7 +1257,7 @@ get : position of live sync point (ie edge of live position minus safety delay d
 
 ## Runtime Events
 
-Hls.js fires a bunch of events, that could be registered and unregistered as below:
+hls.js fires a bunch of events, that could be registered and unregistered as below:
 
 ```js
 function onLevelLoaded (event, data) {
@@ -1220,6 +1374,10 @@ Full list of Events is available below:
     -  data: { frag : fragment object }
   - `Hls.Events.STREAM_STATE_TRANSITION`  - fired upon stream controller state transitions
     -  data: { previousState, nextState }
+  - `Hls.Events.EME_CONFIGURING`  - fired when EME configuration begins
+    -  data: { }
+  - `Hls.Events.EME_CONFIGURED`  - fired when EME has been successfully configured
+    -  data: { }
 
 ## Loader Composition
 
@@ -1300,6 +1458,19 @@ Full list of errors is described below:
     - data: { type : `MEDIA_ERROR`, details : `Hls.ErrorDetails.BUFFER_SEEK_OVER_HOLE`, fatal : `false`, hole : hole duration }
   - `Hls.ErrorDetails.BUFFER_NUDGE_ON_STALL` - raised when playback is stuck although currentTime is in a buffered area
     - data: { type : `MEDIA_ERROR`, details : `Hls.ErrorDetails.BUFFER_STALLED_ERROR`, fatal : `true` }
+
+### Key System Errors
+
+  - `Hls.ErrorDetails.KEY_SYSTEM_NO_ACCESS` - raised when getting MediaKeySystemAccess fails
+    - data: { type : `KEY_SYSTEM_ERROR`, details : `Hls.ErrorDetails.KEY_SYSTEM_NO_ACCESS`, fatal : `true` }
+  - `Hls.ErrorDetails.KEY_SYSTEM_NO_KEYS` - raised when setting MediaKeys on the media fails
+    - data: { type : `KEY_SYSTEM_ERROR`, details : `Hls.ErrorDetails.KEY_SYSTEM_NO_KEYS`, fatal : `true` }
+  - `Hls.ErrorDetails.KEY_SYSTEM_GENERATE_REQUEST_FAILED` - raised when generating a license request from a MediaKeySession fails
+    - data: { type : `KEY_SYSTEM_ERROR`, details : `Hls.ErrorDetails.KEY_SYSTEM_GENERATE_REQUEST_FAILED`, fatal : `true` }
+  - `Hls.ErrorDetails.KEY_SYSTEM_LICENSE_REQUEST_FAILED` - raised when a request for a license fails
+    - data: { type : `KEY_SYSTEM_ERROR`, details : `Hls.ErrorDetails.KEY_SYSTEM_LICENSE_REQUEST_FAILED`, fatal : `true` }
+  - `Hls.ErrorDetails.KEY_SYSTEM_LICENSE_UPDATE_FAILED` - raised when updating a MediaKeySession with a license fails
+    - data: { type : `KEY_SYSTEM_ERROR`, details : `Hls.ErrorDetails.KEY_SYSTEM_LICENSE_UPDATE_FAILED`, fatal : `true` }
 
 ### Mux Errors
 
