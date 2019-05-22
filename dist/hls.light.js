@@ -14477,7 +14477,7 @@ function (_Observer) {
      * @type {string}
      */
     get: function get() {
-      return undefined;
+      return "0.12.3";
     }
   }, {
     key: "Events",
