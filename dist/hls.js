@@ -9007,7 +9007,7 @@ var demuxer_inline = __webpack_require__("./src/demux/demuxer-inline.js");
  * MediaSource helper
  */
 function getMediaSource() {
-  return MediaSource || window.WebKitMediaSource;
+  return window.MediaSource || window.WebKitMediaSource;
 }
 // EXTERNAL MODULE: ./src/utils/get-self-scope.js
 var get_self_scope = __webpack_require__("./src/utils/get-self-scope.js");
@@ -9060,7 +9060,7 @@ function (_EventEmitter) {
 
 var global = Object(get_self_scope["getSelfScope"])(); // safeguard for code that might run both on worker and main thread
 
-var demuxer_MediaSource = getMediaSource();
+var MediaSource = getMediaSource();
 
 var demuxer_Demuxer =
 /*#__PURE__*/
@@ -9090,9 +9090,9 @@ function () {
     observer.on(events["default"].FRAG_PARSING_USERDATA, forwardMessage);
     observer.on(events["default"].INIT_PTS_FOUND, forwardMessage);
     var typeSupported = {
-      mp4: demuxer_MediaSource.isTypeSupported('video/mp4'),
-      mpeg: demuxer_MediaSource.isTypeSupported('audio/mpeg'),
-      mp3: demuxer_MediaSource.isTypeSupported('audio/mp4; codecs="mp3"')
+      mp4: MediaSource.isTypeSupported('video/mp4'),
+      mpeg: MediaSource.isTypeSupported('audio/mpeg'),
+      mp3: MediaSource.isTypeSupported('audio/mp4; codecs="mp3"')
     }; // navigator.vendor is not always available in Web Worker
     // refer to https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/navigator
 
