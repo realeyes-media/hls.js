@@ -37,12 +37,9 @@ import OutputFilter from './output-filter';
  *  ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
  *  POSSIBILITY OF SUCH DAMAGE.
  */
-
-import { logger } from './logger';
-
 /**
- *  Exceptions from regular ASCII. CodePoints are mapped to UTF-16 codes
- */
+     *  Exceptions from regular ASCII. CodePoints are mapped to UTF-16 codes
+     */
 
 let specialCea608CharsCodes = {
   0x2a: 0xe1, // lowercase a, acute accent
@@ -166,13 +163,6 @@ let rowsHighCh2 = { 0x19: 2, 0x1A: 4, 0x1D: 6, 0x1E: 8, 0x1F: 10, 0x1B: 13, 0x1C
 
 let backgroundColors = ['white', 'green', 'blue', 'cyan', 'red', 'yellow', 'magenta', 'black', 'transparent'];
 
-<<<<<<< HEAD:src/utils/cea-608-parser.js
-let ENABLE_LOGS = false; // true;
-let log = () => {};
-let warn = () => {};
-
-let currentTime = null;
-=======
 enum VerboseFilter {
   ERROR = 0,
   TEXT = 1,
@@ -212,7 +202,6 @@ let logger: {
     }
   }
 };
->>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
 
 let numArrayToHexArray = function (numArray: number[]): string[] {
   let hexArray: string[] = [];
@@ -387,10 +376,10 @@ export class Row {
     }
 
     if (this.pos < 0) {
-      logger.error('CEA608 parsing error: Negative cursor position ' + this.pos);
+      logger.log('ERROR', 'Negative cursor position ' + this.pos);
       this.pos = 0;
     } else if (this.pos > NR_COLS) {
-      logger.error('CEA608 parsing error: Too large cursor position ' + this.pos);
+      logger.log('ERROR', 'Too large cursor position ' + this.pos);
       this.pos = NR_COLS;
     }
   }
@@ -422,7 +411,7 @@ export class Row {
     }
     let char = getCharForByte(byte);
     if (this.pos >= NR_COLS) {
-      logger.error('CEA608 parsing error: Cannot insert ' + byte.toString(16) +
+      logger.log('ERROR', 'Cannot insert ' + byte.toString(16) +
                         ' (' + char + ') at position ' + this.pos + '. Skipping it!');
       return;
     }
@@ -556,24 +545,14 @@ export class CaptionScreen {
     row.moveCursor(relPos);
   }
 
-<<<<<<< HEAD:src/utils/cea-608-parser.js
-  setCursor (absPos) {
-    log('CEA Parser: setCursor: ' + absPos);
-=======
   setCursor (absPos: number) {
     logger.log('INFO', 'setCursor: ' + absPos);
->>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     let row = this.rows[this.currRow];
     row.setCursor(absPos);
   }
 
-<<<<<<< HEAD:src/utils/cea-608-parser.js
-  setPAC (pacData) {
-    log('CEA Parser: pacData = ' + JSON.stringify(pacData));
-=======
   setPAC (pacData: PACData) {
     logger.log('INFO', 'pacData = ' + JSON.stringify(pacData));
->>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     let newRow = pacData.row - 1;
     if (this.nrRollUpRows && newRow < this.nrRollUpRows - 1) {
       newRow = this.nrRollUpRows - 1;
@@ -594,11 +573,7 @@ export class CaptionScreen {
       const lastOutputScreen = this.lastOutputScreen as any;
       if (lastOutputScreen) {
         let prevLineTime = lastOutputScreen.rows[topRowIndex].cueStartTime;
-<<<<<<< HEAD:src/utils/cea-608-parser.js
-        if (prevLineTime && prevLineTime < currentTime) {
-=======
         if (prevLineTime && logger.time && prevLineTime < logger.time) {
->>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
           for (let i = 0; i < this.nrRollUpRows; i++) {
             this.rows[newRow - this.nrRollUpRows + i + 1].copy(lastOutputScreen.rows[topRowIndex + i]);
           }
@@ -621,13 +596,8 @@ export class CaptionScreen {
   /**
      * Set background/extra foreground, but first do back_space, and then insert space (backwards compatibility).
      */
-<<<<<<< HEAD:src/utils/cea-608-parser.js
-  setBkgData (bkgData) {
-    log('CEA Parser: bkgData = ' + JSON.stringify(bkgData));
-=======
   setBkgData (bkgData: Partial<PenStyles>) {
     logger.log('INFO', 'bkgData = ' + JSON.stringify(bkgData));
->>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     this.backSpace();
     this.setPen(bkgData);
     this.insertChar(0x20); // Space
@@ -639,16 +609,16 @@ export class CaptionScreen {
 
   rollUp () {
     if (this.nrRollUpRows === null) {
-      log('CEA Parser: roll_up but nrRollUpRows not set yet');
+      logger.log('DEBUG', 'roll_up but nrRollUpRows not set yet');
       return; // Not properly setup
     }
-    log('CEA Parser: ' + this.getDisplayText());
+    logger.log('TEXT', this.getDisplayText());
     let topRowIndex = this.currRow + 1 - this.nrRollUpRows;
     let topRow = this.rows.splice(topRowIndex, 1)[0];
     topRow.clear();
     this.rows.splice(this.currRow, 0, topRow);
-    log('CEA Parser: Rolling up');
-    // log(this.get_display_text())
+    logger.log('INFO', 'Rolling up');
+    // logger.log('TEXT', this.get_display_text())
   }
 
   /**
@@ -748,7 +718,7 @@ class Cea608Channel {
     }
 
     this.mode = newMode;
-    log('CEA Parser: MODE=' + newMode);
+    logger.log('INFO', 'MODE=' + newMode);
     if (this.mode === 'MODE_POP-ON') {
       this.writeScreen = this.nonDisplayedMemory;
     } else {
@@ -768,20 +738,20 @@ class Cea608Channel {
     }
 
     let screen = this.writeScreen === this.displayedMemory ? 'DISP' : 'NON_DISP';
-    log('CEA Parser: ' + screen + ': ' + this.writeScreen.getDisplayText(true));
+    logger.log('INFO', screen + ': ' + this.writeScreen.getDisplayText(true));
     if (this.mode === 'MODE_PAINT-ON' || this.mode === 'MODE_ROLL-UP') {
-      log('CEA Parser: DISPLAYED: ' + this.displayedMemory.getDisplayText(true));
+      logger.log('TEXT', 'DISPLAYED: ' + this.displayedMemory.getDisplayText(true));
       this.outputDataUpdate();
     }
   }
 
   ccRCL () { // Resume Caption Loading (switch mode to Pop On)
-    log('CEA Parser: RCL - Resume Caption Loading');
+    logger.log('INFO', 'RCL - Resume Caption Loading');
     this.setMode('MODE_POP-ON');
   }
 
   ccBS () { // BackSpace
-    log('CEA Parser: BS - BackSpace');
+    logger.log('INFO', 'BS - BackSpace');
     if (this.mode === 'MODE_TEXT') {
       return;
     }
@@ -801,83 +771,69 @@ class Cea608Channel {
   }
 
   ccDER () { // Delete to End of Row
-    log('CEA Parser: DER- Delete to End of Row');
+    logger.log('INFO', 'DER- Delete to End of Row');
     this.writeScreen.clearToEndOfRow();
     this.outputDataUpdate();
   }
 
-<<<<<<< HEAD:src/utils/cea-608-parser.js
-  ccRU (nrRows) { // Roll-Up Captions-2,3,or 4 Rows
-    log('CEA Parser: RU(' + nrRows + ') - Roll Up');
-=======
   ccRU (nrRows: number | null) { // Roll-Up Captions-2,3,or 4 Rows
     logger.log('INFO', 'RU(' + nrRows + ') - Roll Up');
->>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     this.writeScreen = this.displayedMemory;
     this.setMode('MODE_ROLL-UP');
     this.writeScreen.setRollUpRows(nrRows);
   }
 
   ccFON () { // Flash On
-    log('CEA Parser: FON - Flash On');
+    logger.log('INFO', 'FON - Flash On');
     this.writeScreen.setPen({ flash: true });
   }
 
   ccRDC () { // Resume Direct Captioning (switch mode to PaintOn)
-    log('CEA Parser: RDC - Resume Direct Captioning');
+    logger.log('INFO', 'RDC - Resume Direct Captioning');
     this.setMode('MODE_PAINT-ON');
   }
 
   ccTR () { // Text Restart in text mode (not supported, however)
-    log('CEA Parser: TR');
+    logger.log('INFO', 'TR');
     this.setMode('MODE_TEXT');
   }
 
   ccRTD () { // Resume Text Display in Text mode (not supported, however)
-    log('CEA Parser: RTD');
+    logger.log('INFO', 'RTD');
     this.setMode('MODE_TEXT');
   }
 
   ccEDM () { // Erase Displayed Memory
-    log('CEA Parser: EDM - Erase Displayed Memory');
+    logger.log('INFO', 'EDM - Erase Displayed Memory');
     this.displayedMemory.reset();
     this.outputDataUpdate(true);
   }
 
   ccCR () { // Carriage Return
-<<<<<<< HEAD:src/utils/cea-608-parser.js
-    log('CEA Parser: CR - Carriage Return');
-=======
     logger.log('INFO', 'CR - Carriage Return');
->>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     this.writeScreen.rollUp();
     this.outputDataUpdate(true);
   }
 
   ccENM () { // Erase Non-Displayed Memory
-    log('CEA Parser: ENM - Erase Non-displayed Memory');
+    logger.log('INFO', 'ENM - Erase Non-displayed Memory');
     this.nonDisplayedMemory.reset();
   }
 
   ccEOC () { // End of Caption (Flip Memories)
-    log('CEA Parser: EOC - End Of Caption');
+    logger.log('INFO', 'EOC - End Of Caption');
     if (this.mode === 'MODE_POP-ON') {
       let tmp = this.displayedMemory;
       this.displayedMemory = this.nonDisplayedMemory;
       this.nonDisplayedMemory = tmp;
       this.writeScreen = this.nonDisplayedMemory;
-      log('CEA Parser: DISP: ' + this.displayedMemory.getDisplayText());
+      logger.log('TEXT', 'DISP: ' + this.displayedMemory.getDisplayText());
     }
     this.outputDataUpdate(true);
   }
 
-<<<<<<< HEAD:src/utils/cea-608-parser.js
-  ccTO (nrCols) { // Tab Offset 1,2, or 3 columns
-    log('CEA Parser: TO(' + nrCols + ') - Tab Offset');
-=======
   ccTO (nrCols: number) { // Tab Offset 1,2, or 3 columns
     logger.log('INFO', 'TO(' + nrCols + ') - Tab Offset');
->>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     this.writeScreen.moveCursor(nrCols);
   }
 
@@ -892,12 +848,12 @@ class Cea608Channel {
     } else {
       styles.foreground = 'white';
     }
-    log('CEA Parser: MIDROW: ' + JSON.stringify(styles));
+    logger.log('INFO', 'MIDROW: ' + JSON.stringify(styles));
     this.writeScreen.setPen(styles);
   }
 
   outputDataUpdate (dispatch = false) {
-    let t = currentTime;
+    let t = logger.time;
     if (t === null) {
       return;
     }
@@ -907,17 +863,9 @@ class Cea608Channel {
         this.cueStartTime = t;
       } else {
         if (!this.displayedMemory.equals(this.lastOutputScreen)) {
-<<<<<<< HEAD:src/utils/cea-608-parser.js
-          if (this.outputFilter.newCue) {
-            this.outputFilter.newCue(this.cueStartTime, t, this.lastOutputScreen);
-            if (dispatch === true && this.outputFilter.dispatchCue) {
-              this.outputFilter.dispatchCue(this.cueStartTime);
-            }
-=======
           this.outputFilter.newCue(this.cueStartTime, t, this.lastOutputScreen);
           if (dispatch === true && this.outputFilter.dispatchCue) {
             this.outputFilter.dispatchCue();
->>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
           }
 
           this.cueStartTime = this.displayedMemory.isEmpty() ? null : t;
@@ -966,10 +914,6 @@ class Cea608Parser {
     this.lastCmdB = null; // Second byte of last command
     this.lastTime = null;
     this.dataCounters = { 'padding': 0, 'char': 0, 'cmd': 0, 'other': 0 };
-    if (ENABLE_LOGS) {
-      log = logger.log;
-      warn = logger.warn;
-    }
   }
 
   getHandler (index: number) {
@@ -988,22 +932,16 @@ class Cea608Parser {
       charsFound: number[] | boolean | null = false;
 
     this.lastTime = t;
-    currentTime = t;
+    logger.setTime(t);
 
     for (let i = 0; i < byteList.length; i += 2) {
       a = byteList[i] & 0x7f;
       b = byteList[i + 1] & 0x7f;
-      if (a >= 0x10 && a <= 0x1f && a === this.lastCmdA && b === this.lastCmdB) {
-        this.lastCmdA = null;
-        this.lastCmdB = null;
-        log('CEA Parser: Repeated command (' + numArrayToHexArray([a, b]) + ') is dropped');
-        continue; // Repeated commands are dropped (once)
-      }
       if (a === 0 && b === 0) {
         this.dataCounters.padding += 2;
         continue;
       } else {
-        log('CEA Parser: [' + numArrayToHexArray([byteList[i], byteList[i + 1]]) + '] -> (' + numArrayToHexArray([a, b]) + ')');
+        logger.log('DATA', '[' + numArrayToHexArray([byteList[i], byteList[i + 1]]) + '] -> (' + numArrayToHexArray([a, b]) + ')');
       }
       cmdFound = this.parseCmd(a, b);
       if (!cmdFound) {
@@ -1025,7 +963,7 @@ class Cea608Parser {
             let channel = this.channels[this.currChNr - 1];
             channel.insertChars(charsFound);
           } else {
-            warn('No channel found yet. TEXT-MODE?');
+            logger.log('WARNING', 'No channel found yet. TEXT-MODE?');
           }
         }
       }
@@ -1035,7 +973,7 @@ class Cea608Parser {
         this.dataCounters.char += 2;
       } else {
         this.dataCounters.other += 2;
-        warn('WARNING', 'Couldn\'t parse cleaned data ' + numArrayToHexArray([a, b]) +
+        logger.log('WARNING', 'Couldn\'t parse cleaned data ' + numArrayToHexArray([a, b]) +
                             ' orig: ' + numArrayToHexArray([byteList[i], byteList[i + 1]]));
       }
     }
@@ -1045,30 +983,31 @@ class Cea608Parser {
      * Parse Command.
      * @returns {Boolean} Tells if a command was found
      */
-<<<<<<< HEAD:src/utils/cea-608-parser.js
-  parseCmd (a, b) {
-    let chNr = null;
-    let cond1 = (a === 0x14 || a === 0x15 || a === 0x1C || a === 0x1D) && (b >= 0x20 && b <= 0x2F);
-=======
   parseCmd (a: number, b: number): boolean {
     let chNr: number | null = null;
 
     let cond1 = (a === 0x14 || a === 0x1C) && (b >= 0x20 && b <= 0x2F);
->>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     let cond2 = (a === 0x17 || a === 0x1F) && (b >= 0x21 && b <= 0x23);
     if (!(cond1 || cond2)) {
       return false;
     }
 
-    if (a === 0x14 || a === 0x15 || a === 0x17) {
+    if (a === this.lastCmdA && b === this.lastCmdB) {
+      this.lastCmdA = null;
+      this.lastCmdB = null; // Repeated commands are dropped (once)
+      logger.log('DEBUG', 'Repeated command (' + numArrayToHexArray([a, b]) + ') is dropped');
+      return true;
+    }
+
+    if (a === 0x14 || a === 0x17) {
       chNr = 1;
     } else {
       chNr = 2;
-    } // (a === 0x1C || a === 0x1D || a=== 0x1f)
+    } // (a === 0x1C || a=== 0x1f)
 
     let channel = this.channels[chNr - 1];
 
-    if (a === 0x14 || a === 0x15 || a === 0x1C || a === 0x1D) {
+    if (a === 0x14 || a === 0x1C) {
       if (b === 0x20) {
         channel.ccRCL();
       } else if (b === 0x21) {
@@ -1126,16 +1065,12 @@ class Cea608Parser {
       }
 
       if (chNr !== this.currChNr) {
-        logger.error('CEA608 parsing error: Mismatch channel in midrow parsing');
+        logger.log('ERROR', 'Mismatch channel in midrow parsing');
         return false;
       }
       let channel = this.channels[chNr - 1];
-      // cea608 spec says midrow codes should inject a space
-      channel.insertChars([0x20]);
       channel.ccMIDROW(b);
-      log('CEA Parser: MIDROW (' + numArrayToHexArray([a, b]) + ')');
-      this.lastCmdA = a;
-      this.lastCmdB = b;
+      logger.log('DEBUG', 'MIDROW (' + numArrayToHexArray([a, b]) + ')');
       return true;
     }
     return false;
@@ -1152,6 +1087,12 @@ class Cea608Parser {
     let case2 = (a === 0x10 || a === 0x18) && (b >= 0x40 && b <= 0x5F);
     if (!(case1 || case2)) {
       return false;
+    }
+
+    if (a === this.lastCmdA && b === this.lastCmdB) {
+      this.lastCmdA = null;
+      this.lastCmdB = null;
+      return true; // Repeated commands are dropped (once)
     }
 
     chNr = (a <= 0x17) ? 1 : 2;
@@ -1223,18 +1164,16 @@ class Cea608Parser {
         oneCode = b + 0x90;
       }
 
-      log('CEA Parser: Special char \'' + getCharForByte(oneCode) + '\' in channel ' + channelNr);
+      logger.log('INFO', 'Special char \'' + getCharForByte(oneCode) + '\' in channel ' + channelNr);
       charCodes = [oneCode];
-      this.lastCmdA = a;
-      this.lastCmdB = b;
     } else if (a >= 0x20 && a <= 0x7f) {
       charCodes = (b === 0) ? [a] : [a, b];
-      this.lastCmdA = null;
-      this.lastCmdB = null;
     }
     if (charCodes) {
       let hexCodes = numArrayToHexArray(charCodes);
-      log('CEA Parser: Char codes =  ' + hexCodes.join(','));
+      logger.log('DEBUG', 'Char codes =  ' + hexCodes.join(','));
+      this.lastCmdA = null;
+      this.lastCmdB = null;
     }
     return charCodes;
   }
@@ -1273,8 +1212,8 @@ class Cea608Parser {
     chNr = (a < 0x18) ? 1 : 2;
     channel = this.channels[chNr - 1];
     channel.setBkgData(bkgData);
-    this.lastCmdA = a;
-    this.lastCmdB = b;
+    this.lastCmdA = null;
+    this.lastCmdB = null;
     return true;
   }
 
