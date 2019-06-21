@@ -1,3 +1,5 @@
+import OutputFilter from './output-filter';
+
 /**
  *
  * This code was ported from the dash.js project at:
@@ -145,7 +147,7 @@ let specialCea608CharsCodes = {
 /**
  * Utils
  */
-let getCharForByte = function (byte) {
+let getCharForByte = function (byte: number) {
   let charCode = byte;
   if (specialCea608CharsCodes.hasOwnProperty(byte)) {
     charCode = specialCea608CharsCodes[byte];
@@ -164,14 +166,56 @@ let rowsHighCh2 = { 0x19: 2, 0x1A: 4, 0x1D: 6, 0x1E: 8, 0x1F: 10, 0x1B: 13, 0x1C
 
 let backgroundColors = ['white', 'green', 'blue', 'cyan', 'red', 'yellow', 'magenta', 'black', 'transparent'];
 
+<<<<<<< HEAD:src/utils/cea-608-parser.js
 let ENABLE_LOGS = false; // true;
 let log = () => {};
 let warn = () => {};
 
 let currentTime = null;
+=======
+enum VerboseFilter {
+  ERROR = 0,
+  TEXT = 1,
+  WARNING = 2,
+  INFO = 2,
+  DEBUG = 3,
+  DATA = 3,
+}
 
-let numArrayToHexArray = function (numArray) {
-  let hexArray = [];
+/**
+ * Simple logger class to be able to write with time-stamps and filter on level.
+ */
+let logger: {
+  verboseFilter: {
+    'DATA': VerboseFilter.DATA;
+    'DEBUG': VerboseFilter.DEBUG;
+    'INFO': VerboseFilter.INFO;
+    'WARNING': VerboseFilter.WARNING;
+    'TEXT': VerboseFilter.TEXT;
+    'ERROR': VerboseFilter.ERROR;
+  },
+  time: number | null
+  verboseLevel: VerboseFilter,
+  setTime: (newTime: number | null) => void,
+  log: (severity: keyof typeof VerboseFilter, msg: string) => void,
+} = {
+  verboseFilter: { 'DATA': 3, 'DEBUG': 3, 'INFO': 2, 'WARNING': 2, 'TEXT': 1, 'ERROR': 0 },
+  time: null,
+  verboseLevel: 0, // Only write errors
+  setTime: function (newTime) {
+    this.time = newTime;
+  },
+  log: function (severity, msg) {
+    let minLevel = this.verboseFilter[severity];
+    if (this.verboseLevel >= minLevel) {
+      // console.log(this.time + ' [' + severity + '] ' + msg);
+    }
+  }
+};
+>>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
+
+let numArrayToHexArray = function (numArray: number[]): string[] {
+  let hexArray: string[] = [];
   for (let j = 0; j < numArray.length; j++) {
     hexArray.push(numArray[j].toString(16));
   }
@@ -179,8 +223,22 @@ let numArrayToHexArray = function (numArray) {
   return hexArray;
 };
 
+type PenStyles = {
+  foreground: string | null,
+  underline: boolean,
+  italics: boolean,
+  background: string,
+  flash: boolean,
+};
+
 class PenState {
-  constructor (foreground, underline, italics, background, flash) {
+  public foreground: string;
+  public underline: boolean;
+  public italics: boolean;
+  public background: string;
+  public flash: boolean;
+
+  constructor (foreground?: string, underline?: boolean, italics?: boolean, background?: string, flash?: boolean) {
     this.foreground = foreground || 'white';
     this.underline = underline || false;
     this.italics = italics || false;
@@ -196,7 +254,7 @@ class PenState {
     this.flash = false;
   }
 
-  setStyles (styles) {
+  setStyles (styles: Partial<PenStyles>) {
     let attribs = ['foreground', 'underline', 'italics', 'background', 'flash'];
     for (let i = 0; i < attribs.length; i++) {
       let style = attribs[i];
@@ -211,7 +269,7 @@ class PenState {
                 this.background === 'black' && !this.flash);
   }
 
-  equals (other) {
+  equals (other: PenState) {
     return ((this.foreground === other.foreground) &&
                  (this.underline === other.underline) &&
                  (this.italics === other.italics) &&
@@ -219,7 +277,7 @@ class PenState {
                  (this.flash === other.flash));
   }
 
-  copy (newPenState) {
+  copy (newPenState: PenState) {
     this.foreground = newPenState.foreground;
     this.underline = newPenState.underline;
     this.italics = newPenState.italics;
@@ -227,7 +285,7 @@ class PenState {
     this.flash = newPenState.flash;
   }
 
-  toString () {
+  toString (): string {
     return ('color=' + this.foreground + ', underline=' + this.underline + ', italics=' + this.italics +
             ', background=' + this.background + ', flash=' + this.flash);
   }
@@ -238,7 +296,9 @@ class PenState {
  * @constructor
  */
 class StyledUnicodeChar {
-  constructor (uchar, foreground, underline, italics, background, flash) {
+  uchar: string;
+  penState: PenState;
+  constructor (uchar?: string, foreground?: string, underline?: boolean, italics?: boolean, background?: string, flash?: boolean) {
     this.uchar = uchar || ' '; // unicode character
     this.penState = new PenState(foreground, underline, italics, background, flash);
   }
@@ -248,25 +308,25 @@ class StyledUnicodeChar {
     this.penState.reset();
   }
 
-  setChar (uchar, newPenState) {
+  setChar (uchar: string, newPenState: PenState) {
     this.uchar = uchar;
     this.penState.copy(newPenState);
   }
 
-  setPenState (newPenState) {
+  setPenState (newPenState: PenState) {
     this.penState.copy(newPenState);
   }
 
-  equals (other) {
+  equals (other: StyledUnicodeChar) {
     return this.uchar === other.uchar && this.penState.equals(other.penState);
   }
 
-  copy (newChar) {
+  copy (newChar: StyledUnicodeChar) {
     this.uchar = newChar.uchar;
     this.penState.copy(newChar.penState);
   }
 
-  isEmpty () {
+  isEmpty (): boolean {
     return this.uchar === ' ' && this.penState.isDefault();
   }
 }
@@ -275,7 +335,11 @@ class StyledUnicodeChar {
  * CEA-608 row consisting of NR_COLS instances of StyledUnicodeChar.
  * @constructor
  */
-class Row {
+export class Row {
+  public chars: StyledUnicodeChar[];
+  public pos: number;
+  public currPenState: PenState;
+  public cueStartTime?: number;
   constructor () {
     this.chars = [];
     for (let i = 0; i < NR_COLS; i++) {
@@ -286,7 +350,7 @@ class Row {
     this.currPenState = new PenState();
   }
 
-  equals (other) {
+  equals (other: Row) {
     let equal = true;
     for (let i = 0; i < NR_COLS; i++) {
       if (!this.chars[i].equals(other.chars[i])) {
@@ -297,13 +361,13 @@ class Row {
     return equal;
   }
 
-  copy (other) {
+  copy (other: Row) {
     for (let i = 0; i < NR_COLS; i++) {
       this.chars[i].copy(other.chars[i]);
     }
   }
 
-  isEmpty () {
+  isEmpty (): boolean {
     let empty = true;
     for (let i = 0; i < NR_COLS; i++) {
       if (!this.chars[i].isEmpty()) {
@@ -317,7 +381,7 @@ class Row {
   /**
      *  Set the cursor to a valid column.
      */
-  setCursor (absPos) {
+  setCursor (absPos: number) {
     if (this.pos !== absPos) {
       this.pos = absPos;
     }
@@ -334,7 +398,7 @@ class Row {
   /**
      * Move the cursor relative to current position.
      */
-  moveCursor (relPos) {
+  moveCursor (relPos: number) {
     let newPos = this.pos + relPos;
     if (relPos > 1) {
       for (let i = this.pos + 1; i < newPos + 1; i++) {
@@ -352,7 +416,7 @@ class Row {
     this.chars[this.pos].setChar(' ', this.currPenState);
   }
 
-  insertChar (byte) {
+  insertChar (byte: number) {
     if (byte >= 0x90) { // Extended char
       this.backSpace();
     }
@@ -366,8 +430,8 @@ class Row {
     this.moveCursor(1);
   }
 
-  clearFromPos (startPos) {
-    let i;
+  clearFromPos (startPos: number) {
+    let i: number;
     for (i = startPos; i < NR_COLS; i++) {
       this.chars[i].reset();
     }
@@ -384,7 +448,7 @@ class Row {
   }
 
   getTextString () {
-    let chars = [];
+    let chars: string[] = [];
     let empty = true;
     for (let i = 0; i < NR_COLS; i++) {
       let char = this.chars[i].uchar;
@@ -401,7 +465,7 @@ class Row {
     }
   }
 
-  setPenStyles (styles) {
+  setPenStyles (styles: Partial<PenStyles>) {
     this.currPenState.setStyles(styles);
     let currChar = this.chars[this.pos];
     currChar.setPenState(this.currPenState);
@@ -412,7 +476,11 @@ class Row {
  * Keep a CEA-608 screen of 32x15 styled characters
  * @constructor
 */
-class CaptionScreen {
+export class CaptionScreen {
+  rows: Row[];
+  currRow: number;
+  nrRollUpRows: number | null;
+  lastOutputScreen: any;
   constructor () {
     this.rows = [];
     for (let i = 0; i < NR_ROWS; i++) {
@@ -432,7 +500,7 @@ class CaptionScreen {
     this.currRow = NR_ROWS - 1;
   }
 
-  equals (other) {
+  equals (other: CaptionScreen): boolean {
     let equal = true;
     for (let i = 0; i < NR_ROWS; i++) {
       if (!this.rows[i].equals(other.rows[i])) {
@@ -443,13 +511,13 @@ class CaptionScreen {
     return equal;
   }
 
-  copy (other) {
+  copy (other: CaptionScreen) {
     for (let i = 0; i < NR_ROWS; i++) {
       this.rows[i].copy(other.rows[i]);
     }
   }
 
-  isEmpty () {
+  isEmpty (): boolean {
     let empty = true;
     for (let i = 0; i < NR_ROWS; i++) {
       if (!this.rows[i].isEmpty()) {
@@ -473,29 +541,39 @@ class CaptionScreen {
   /**
      * Insert a character (without styling) in the current row.
      */
-  insertChar (char) {
+  insertChar (char: number) {
     let row = this.rows[this.currRow];
     row.insertChar(char);
   }
 
-  setPen (styles) {
+  setPen (styles: Partial<PenStyles>) {
     let row = this.rows[this.currRow];
     row.setPenStyles(styles);
   }
 
-  moveCursor (relPos) {
+  moveCursor (relPos: number) {
     let row = this.rows[this.currRow];
     row.moveCursor(relPos);
   }
 
+<<<<<<< HEAD:src/utils/cea-608-parser.js
   setCursor (absPos) {
     log('CEA Parser: setCursor: ' + absPos);
+=======
+  setCursor (absPos: number) {
+    logger.log('INFO', 'setCursor: ' + absPos);
+>>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     let row = this.rows[this.currRow];
     row.setCursor(absPos);
   }
 
+<<<<<<< HEAD:src/utils/cea-608-parser.js
   setPAC (pacData) {
     log('CEA Parser: pacData = ' + JSON.stringify(pacData));
+=======
+  setPAC (pacData: PACData) {
+    logger.log('INFO', 'pacData = ' + JSON.stringify(pacData));
+>>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     let newRow = pacData.row - 1;
     if (this.nrRollUpRows && newRow < this.nrRollUpRows - 1) {
       newRow = this.nrRollUpRows - 1;
@@ -513,10 +591,14 @@ class CaptionScreen {
       let topRowIndex = this.currRow + 1 - (this.nrRollUpRows);
       // We only copy if the last position was already shown.
       // We use the cueStartTime value to check this.
-      const lastOutputScreen = this.lastOutputScreen;
+      const lastOutputScreen = this.lastOutputScreen as any;
       if (lastOutputScreen) {
         let prevLineTime = lastOutputScreen.rows[topRowIndex].cueStartTime;
+<<<<<<< HEAD:src/utils/cea-608-parser.js
         if (prevLineTime && prevLineTime < currentTime) {
+=======
+        if (prevLineTime && logger.time && prevLineTime < logger.time) {
+>>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
           for (let i = 0; i < this.nrRollUpRows; i++) {
             this.rows[newRow - this.nrRollUpRows + i + 1].copy(lastOutputScreen.rows[topRowIndex + i]);
           }
@@ -532,21 +614,26 @@ class CaptionScreen {
       row.setCursor(pacData.indent);
       pacData.color = row.chars[prevPos].penState.foreground;
     }
-    let styles = { foreground: pacData.color, underline: pacData.underline, italics: pacData.italics, background: 'black', flash: false };
+    let styles: PenStyles = { foreground: pacData.color, underline: pacData.underline, italics: pacData.italics, background: 'black', flash: false };
     this.setPen(styles);
   }
 
   /**
      * Set background/extra foreground, but first do back_space, and then insert space (backwards compatibility).
      */
+<<<<<<< HEAD:src/utils/cea-608-parser.js
   setBkgData (bkgData) {
     log('CEA Parser: bkgData = ' + JSON.stringify(bkgData));
+=======
+  setBkgData (bkgData: Partial<PenStyles>) {
+    logger.log('INFO', 'bkgData = ' + JSON.stringify(bkgData));
+>>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     this.backSpace();
     this.setPen(bkgData);
     this.insertChar(0x20); // Space
   }
 
-  setRollUpRows (nrRows) {
+  setRollUpRows (nrRows: number | null) {
     this.nrRollUpRows = nrRows;
   }
 
@@ -567,9 +654,9 @@ class CaptionScreen {
   /**
     * Get all non-empty rows with as unicode text.
     */
-  getDisplayText (asOneRow) {
+  getDisplayText (asOneRow?: boolean) {
     asOneRow = asOneRow || false;
-    let displayText = [];
+    let displayText: string[] = [];
     let text = '';
     let rowNr = -1;
     for (let i = 0; i < NR_ROWS; i++) {
@@ -600,8 +687,21 @@ class CaptionScreen {
 
 // var modes = ['MODE_ROLL-UP', 'MODE_POP-ON', 'MODE_PAINT-ON', 'MODE_TEXT'];
 
+type CaptionModes = 'MODE_ROLL-UP' | 'MODE_POP-ON' | 'MODE_PAINT-ON' | 'MODE_TEXT' | null;
+
 class Cea608Channel {
-  constructor (channelNumber, outputFilter) {
+  chNr: number;
+  outputFilter: OutputFilter;
+  mode: CaptionModes;
+  verbose: number;
+  displayedMemory: CaptionScreen;
+  nonDisplayedMemory: CaptionScreen;
+  lastOutputScreen: CaptionScreen;
+  currRollUpRow: Row;
+  writeScreen: CaptionScreen;
+  cueStartTime: number | null;
+  lastCueEndTime: null;
+  constructor (channelNumber: number, outputFilter: OutputFilter) {
     this.chNr = channelNumber;
     this.outputFilter = outputFilter;
     this.mode = null;
@@ -624,26 +724,25 @@ class Cea608Channel {
     this.writeScreen = this.displayedMemory;
     this.mode = null;
     this.cueStartTime = null;
-    this.lastCueEndTime = null;
   }
 
-  getHandler () {
+  getHandler (): OutputFilter {
     return this.outputFilter;
   }
 
-  setHandler (newHandler) {
+  setHandler (newHandler: OutputFilter) {
     this.outputFilter = newHandler;
   }
 
-  setPAC (pacData) {
+  setPAC (pacData: PACData) {
     this.writeScreen.setPAC(pacData);
   }
 
-  setBkgData (bkgData) {
+  setBkgData (bkgData: Partial<PenStyles>) {
     this.writeScreen.setBkgData(bkgData);
   }
 
-  setMode (newMode) {
+  setMode (newMode: CaptionModes) {
     if (newMode === this.mode) {
       return;
     }
@@ -663,7 +762,7 @@ class Cea608Channel {
     this.mode = newMode;
   }
 
-  insertChars (chars) {
+  insertChars (chars: number[]) {
     for (let i = 0; i < chars.length; i++) {
       this.writeScreen.insertChar(chars[i]);
     }
@@ -707,8 +806,13 @@ class Cea608Channel {
     this.outputDataUpdate();
   }
 
+<<<<<<< HEAD:src/utils/cea-608-parser.js
   ccRU (nrRows) { // Roll-Up Captions-2,3,or 4 Rows
     log('CEA Parser: RU(' + nrRows + ') - Roll Up');
+=======
+  ccRU (nrRows: number | null) { // Roll-Up Captions-2,3,or 4 Rows
+    logger.log('INFO', 'RU(' + nrRows + ') - Roll Up');
+>>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     this.writeScreen = this.displayedMemory;
     this.setMode('MODE_ROLL-UP');
     this.writeScreen.setRollUpRows(nrRows);
@@ -741,7 +845,11 @@ class Cea608Channel {
   }
 
   ccCR () { // Carriage Return
+<<<<<<< HEAD:src/utils/cea-608-parser.js
     log('CEA Parser: CR - Carriage Return');
+=======
+    logger.log('INFO', 'CR - Carriage Return');
+>>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     this.writeScreen.rollUp();
     this.outputDataUpdate(true);
   }
@@ -763,13 +871,18 @@ class Cea608Channel {
     this.outputDataUpdate(true);
   }
 
+<<<<<<< HEAD:src/utils/cea-608-parser.js
   ccTO (nrCols) { // Tab Offset 1,2, or 3 columns
     log('CEA Parser: TO(' + nrCols + ') - Tab Offset');
+=======
+  ccTO (nrCols: number) { // Tab Offset 1,2, or 3 columns
+    logger.log('INFO', 'TO(' + nrCols + ') - Tab Offset');
+>>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     this.writeScreen.moveCursor(nrCols);
   }
 
-  ccMIDROW (secondByte) { // Parse MIDROW command
-    let styles = { flash: false };
+  ccMIDROW (secondByte: number) { // Parse MIDROW command
+    let styles: Partial<PenStyles> = { flash: false };
     styles.underline = secondByte % 2 === 1;
     styles.italics = secondByte >= 0x2e;
     if (!styles.italics) {
@@ -794,12 +907,19 @@ class Cea608Channel {
         this.cueStartTime = t;
       } else {
         if (!this.displayedMemory.equals(this.lastOutputScreen)) {
+<<<<<<< HEAD:src/utils/cea-608-parser.js
           if (this.outputFilter.newCue) {
             this.outputFilter.newCue(this.cueStartTime, t, this.lastOutputScreen);
             if (dispatch === true && this.outputFilter.dispatchCue) {
               this.outputFilter.dispatchCue(this.cueStartTime);
             }
+=======
+          this.outputFilter.newCue(this.cueStartTime, t, this.lastOutputScreen);
+          if (dispatch === true && this.outputFilter.dispatchCue) {
+            this.outputFilter.dispatchCue();
+>>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
           }
+
           this.cueStartTime = this.displayedMemory.isEmpty() ? null : t;
         }
       }
@@ -807,7 +927,7 @@ class Cea608Channel {
     }
   }
 
-  cueSplitAtTime (t) {
+  cueSplitAtTime (t: number) {
     if (this.outputFilter) {
       if (!this.displayedMemory.isEmpty()) {
         if (this.outputFilter.newCue) {
@@ -820,16 +940,30 @@ class Cea608Channel {
   }
 }
 
+interface PACData {
+  row: number;
+  indent: number | null;
+  color: string | null;
+  underline: boolean;
+  italics: boolean;
+}
+
 class Cea608Parser {
-  constructor (field, out1, out2) {
+  field: number;
+  outputs: OutputFilter[];
+  channels: Cea608Channel[];
+  currChNr: number;
+  lastCmdA: number | null;
+  lastCmdB: number | null;
+  lastTime: number | null;
+  dataCounters: { 'padding': number; 'char': number; 'cmd': number; 'other': number; };
+  constructor (field: number, out1: OutputFilter, out2: OutputFilter) {
     this.field = field || 1;
     this.outputs = [out1, out2];
     this.channels = [new Cea608Channel(1, out1), new Cea608Channel(2, out2)];
     this.currChNr = -1; // Will be 1 or 2
     this.lastCmdA = null; // First byte of last command
     this.lastCmdB = null; // Second byte of last command
-    this.bufferedData = [];
-    this.startTime = null;
     this.lastTime = null;
     this.dataCounters = { 'padding': 0, 'char': 0, 'cmd': 0, 'other': 0 };
     if (ENABLE_LOGS) {
@@ -838,20 +972,20 @@ class Cea608Parser {
     }
   }
 
-  getHandler (index) {
+  getHandler (index: number) {
     return this.channels[index].getHandler();
   }
 
-  setHandler (index, newHandler) {
+  setHandler (index: number, newHandler: OutputFilter) {
     this.channels[index].setHandler(newHandler);
   }
 
   /**
      * Add data for time t in forms of list of bytes (unsigned ints). The bytes are treated as pairs.
      */
-  addData (t, byteList) {
-    let cmdFound, a, b,
-      charsFound = false;
+  addData (t: number | null, byteList: number[]) {
+    let cmdFound: boolean, a: number, b: number,
+      charsFound: number[] | boolean | null = false;
 
     this.lastTime = t;
     currentTime = t;
@@ -911,9 +1045,16 @@ class Cea608Parser {
      * Parse Command.
      * @returns {Boolean} Tells if a command was found
      */
+<<<<<<< HEAD:src/utils/cea-608-parser.js
   parseCmd (a, b) {
     let chNr = null;
     let cond1 = (a === 0x14 || a === 0x15 || a === 0x1C || a === 0x1D) && (b >= 0x20 && b <= 0x2F);
+=======
+  parseCmd (a: number, b: number): boolean {
+    let chNr: number | null = null;
+
+    let cond1 = (a === 0x14 || a === 0x1C) && (b >= 0x20 && b <= 0x2F);
+>>>>>>> cmaf-map-tag:src/utils/cea-608-parser.ts
     let cond2 = (a === 0x17 || a === 0x1F) && (b >= 0x21 && b <= 0x23);
     if (!(cond1 || cond2)) {
       return false;
@@ -974,8 +1115,8 @@ class Cea608Parser {
      * Parse midrow styling command
      * @returns {Boolean}
      */
-  parseMidrow (a, b) {
-    let chNr = null;
+  parseMidrow (a: number, b: number): boolean {
+    let chNr: number | null = null;
 
     if (((a === 0x11) || (a === 0x19)) && b >= 0x20 && b <= 0x2f) {
       if (a === 0x11) {
@@ -1003,9 +1144,9 @@ class Cea608Parser {
      * Parse Preable Access Codes (Table 53).
      * @returns {Boolean} Tells if PAC found
      */
-  parsePAC (a, b) {
-    let chNr = null;
-    let row = null;
+  parsePAC (a: number, b: number): boolean {
+    let chNr: number | null = null;
+    let row: number | null = null;
 
     let case1 = ((a >= 0x11 && a <= 0x17) || (a >= 0x19 && a <= 0x1F)) && (b >= 0x40 && b <= 0x7F);
     let case2 = (a === 0x10 || a === 0x18) && (b >= 0x40 && b <= 0x5F);
@@ -1020,7 +1161,7 @@ class Cea608Parser {
     } else { // 0x60 <= b <= 0x7F
       row = (chNr === 1) ? rowsHighCh1[a] : rowsHighCh2[a];
     }
-    let pacData = this.interpretPAC(row, b);
+    let pacData = this.interpretPAC(row!, b);
     let channel = this.channels[chNr - 1];
     channel.setPAC(pacData);
     this.lastCmdA = a;
@@ -1033,9 +1174,9 @@ class Cea608Parser {
      * Interpret the second byte of the pac, and return the information.
      * @returns {Object} pacData with style parameters.
      */
-  interpretPAC (row, byte) {
+  interpretPAC (row: number, byte: number): PACData {
     let pacIndex = byte;
-    let pacData = { color: null, italics: false, indent: null, underline: false, row: row };
+    let pacData: PACData = { color: null, italics: false, indent: null, underline: false, row: row };
 
     if (byte > 0x5F) {
       pacIndex = byte - 0x60;
@@ -1059,10 +1200,10 @@ class Cea608Parser {
      * Parse characters.
      * @returns An array with 1 to 2 codes corresponding to chars, if found. null otherwise.
      */
-  parseChars (a, b) {
-    let channelNr = null,
-      charCodes = null,
-      charCode1 = null;
+  parseChars (a: number, b: number): number[] | null {
+    let channelNr: number | null = null,
+      charCodes: number[] | null = null,
+      charCode1: number | null = null;
 
     if (a >= 0x19) {
       channelNr = 2;
@@ -1100,13 +1241,13 @@ class Cea608Parser {
 
   /**
     * Parse extended background attributes as well as new foreground color black.
-    * @returns{Boolean} Tells if background attributes are found
+    * @returns {Boolean} Tells if background attributes are found
     */
-  parseBackgroundAttributes (a, b) {
-    let bkgData,
-      index,
-      chNr,
-      channel;
+  parseBackgroundAttributes (a: number, b: number): boolean {
+    let bkgData: Partial<PenStyles>,
+      index: number,
+      chNr: number,
+      channel: Cea608Channel;
 
     let case1 = (a === 0x10 || a === 0x18) && (b >= 0x20 && b <= 0x2f);
     let case2 = (a === 0x17 || a === 0x1f) && (b >= 0x2d && b <= 0x2f);
@@ -1153,7 +1294,7 @@ class Cea608Parser {
   /**
      * Trigger the generation of a cue, and the start of a new one if displayScreens are not empty.
      */
-  cueSplitAtTime (t) {
+  cueSplitAtTime (t: number) {
     for (let i = 0; i < this.channels.length; i++) {
       if (this.channels[i]) {
         this.channels[i].cueSplitAtTime(t);
