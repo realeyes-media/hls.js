@@ -100,11 +100,13 @@ const setupEach = function (config) {
   hls.attachMedia(media);
 };
 
-describe('EMEController', function () {
-  beforeEach(function () {
-    setupEach();
-  });
+const ensureHttps = function (test) {
+  if (window.location.protocol !== 'https:') {
+    test.skip();
+  }
+};
 
+describe('EMEController', function () {
   it('should not do anything when `emeEnabled` is false (default)', function () {
     setupEach({
       requestMediaKeySystemAccessFunc: requestMediaKeySystemAccessSpy,
@@ -118,6 +120,8 @@ describe('EMEController', function () {
   });
 
   it('should require all config functions when EME is enabled', function () {
+    ensureHttps(this);
+
     setupEach({
       emeEnabled: true
     });
@@ -136,6 +140,8 @@ describe('EMEController', function () {
   });
 
   it('should create supportedConfigurations from level data', function () {
+    ensureHttps(this);
+
     setupEach({
       emeEnabled: true,
       requestMediaKeySystemAccessFunc: requestMediaKeySystemAccessSpy,
@@ -151,6 +157,8 @@ describe('EMEController', function () {
   });
 
   it('should get MediaKeySystemAccess with valid configuration', function () {
+    ensureHttps(this);
+
     setupEach({
       emeEnabled: true,
       requestMediaKeySystemAccessFunc: requestMediaKeySystemAccessSpy,
@@ -168,6 +176,8 @@ describe('EMEController', function () {
   });
 
   it('should trigger KEY_SYSTEM_NO_ACCESS error when key system cannot be accessed', function () {
+    ensureHttps(this);
+
     setupEach({
       emeEnabled: true,
       requestMediaKeySystemAccessFunc: requestMediaKeySystemAccessSpy,
@@ -187,6 +197,8 @@ describe('EMEController', function () {
   });
 
   it('should create MediaKeys', function () {
+    ensureHttps(this);
+
     setupEach({
       emeEnabled: true,
       requestMediaKeySystemAccessFunc: requestMediaKeySystemAccessSpy,
@@ -208,6 +220,8 @@ describe('EMEController', function () {
   });
 
   it('should set MediaKeys on media', function () {
+    ensureHttps(this);
+
     setupEach({
       emeEnabled: true,
       requestMediaKeySystemAccessFunc: requestMediaKeySystemAccessSpy,
@@ -231,6 +245,8 @@ describe('EMEController', function () {
   });
 
   it('should create MediaKeySessions for each level and audio track', function () {
+    ensureHttps(this);
+
     setupEach({
       emeEnabled: true,
       requestMediaKeySystemAccessFunc: requestMediaKeySystemAccessSpy,
@@ -270,6 +286,8 @@ describe('EMEController', function () {
   });
 
   it('should trigger KEY_SYSTEM_GENERATE_REQUEST_FAILED error when generating a license request fails', function () {
+    ensureHttps(this);
+
     setupEach({
       emeEnabled: true,
       requestMediaKeySystemAccessFunc: requestMediaKeySystemAccessSpy,
@@ -313,6 +331,8 @@ describe('EMEController', function () {
   });
 
   it('should request licenses for each level and audio track and apply them to their key sessions', function (done) {
+    ensureHttps(this);
+
     setupEach({
       emeEnabled: true,
       requestMediaKeySystemAccessFunc: requestMediaKeySystemAccessSpy,
@@ -328,6 +348,8 @@ describe('EMEController', function () {
   }).timeout(20000);
 
   it('should trigger KEY_SYSTEM_LICENSE_REQUEST_FAILED error when license requests fail', function (done) {
+    ensureHttps(this);
+
     setupEach({
       emeEnabled: true,
       requestMediaKeySystemAccessFunc: requestMediaKeySystemAccessSpy,

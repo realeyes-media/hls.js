@@ -19361,13 +19361,14 @@ function (_EventHandler) {
       logger["logger"].log('Received key session message, requesting license');
 
       _this.getEMELicense(levelOrAudioTrack, event).then(function (license) {
-        logger["logger"].log('Received license data, updating key-session');
+        logger["logger"].log('Received license data, updating key session');
         return event.target.update(license).then(function () {
+          logger["logger"].log('Key session updated with license');
           resolve();
-        }).catch(function (err) {
+        }).catch(function () {
           reject(errors["ErrorDetails"].KEY_SYSTEM_LICENSE_UPDATE_FAILED);
         });
-      }).catch(function (err) {
+      }).catch(function () {
         reject(errors["ErrorDetails"].KEY_SYSTEM_LICENSE_REQUEST_FAILED);
       });
     };

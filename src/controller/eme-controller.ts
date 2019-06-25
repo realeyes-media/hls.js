@@ -48,7 +48,7 @@ class EMEController extends EventHandler {
     super(hls,
       Event.MEDIA_ATTACHING,
       Event.MANIFEST_PARSED,
-      Event.MEDIA_DETACHING,
+      Event.MEDIA_DETACHING
     );
 
     this._emeEnabled = hls.config.emeEnabled;
@@ -72,13 +72,14 @@ class EMEController extends EventHandler {
     logger.log('Received key session message, requesting license');
 
     this.getEMELicense(levelOrAudioTrack, event).then((license: ArrayBuffer) => {
-      logger.log('Received license data, updating key-session');
+      logger.log('Received license data, updating key session');
       return (event.target! as MediaKeySession).update(license).then(() => {
+        logger.log('Key session updated with license');
         resolve();
-      }).catch((err) => {
+      }).catch(() => {
         reject(ErrorDetails.KEY_SYSTEM_LICENSE_UPDATE_FAILED);
       });
-    }).catch((err) => {
+    }).catch(() => {
       reject(ErrorDetails.KEY_SYSTEM_LICENSE_REQUEST_FAILED);
     });
   }
@@ -91,20 +92,20 @@ class EMEController extends EventHandler {
    * requred for different levels or audio tracks
    * @returns {Promise<any>} Promise resolved or rejected by _onKeySessionMessage
    */
-  private _onMediaKeySessionCreated(session: MediaKeySession, levelOrAudioTrack: any): Promise<any> {
+  private _onMediaKeySessionCreated (session: MediaKeySession, levelOrAudioTrack: any): Promise<any> {
     logger.log('Generating license request');
 
     return this.getEMEInitializationData(levelOrAudioTrack, this.initDataType, this.initData).then((initDataInfo) => {
       const messagePromise = new Promise((resolve, reject) => {
         session.addEventListener('message', (event: MediaKeyMessageEvent) => {
-          this._onKeySessionMessage(event, levelOrAudioTrack, resolve, reject)
+          this._onKeySessionMessage(event, levelOrAudioTrack, resolve, reject);
         });
       });
 
       return session.generateRequest(initDataInfo.initDataType, initDataInfo.initData).catch((err) => {
         logger.error('Failed to generate license request:', err);
 
-        return Promise.reject(ErrorDetails.KEY_SYSTEM_GENERATE_REQUEST_FAILED)
+        return Promise.reject(ErrorDetails.KEY_SYSTEM_GENERATE_REQUEST_FAILED);
       }).then(() => {
         return messagePromise;
       });
@@ -179,7 +180,6 @@ class EMEController extends EventHandler {
         return Promise.reject(ErrorDetails.KEY_SYSTEM_NO_KEYS);
       });
     }
-    
   }
 
   /**
