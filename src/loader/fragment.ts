@@ -174,7 +174,7 @@ export default class Fragment {
    * @returns {LevelKey} - an object to be applied as a fragment's decryptdata
    */
   setDecryptDataFromLevelKey (levelkey: LevelKey, segmentNumber: number): LevelKey {
-    let decryptdata = levelkey;
+    let decryptdata;
 
     if (levelkey && levelkey.method && levelkey.uri && !levelkey.iv) {
       decryptdata = new LevelKey(levelkey.baseuri, levelkey.reluri);
@@ -182,6 +182,6 @@ export default class Fragment {
       decryptdata.iv = this.createInitializationVector(segmentNumber);
     }
 
-    return decryptdata;
+    return decryptdata || null;
   }
 }
