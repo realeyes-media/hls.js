@@ -73,11 +73,9 @@ class AudioStreamController extends BaseStreamController {
       if (lastCurrentTime > 0 && startPosition === -1) {
         logger.log(`audio:override startPosition with lastCurrentTime @${lastCurrentTime.toFixed(3)}`);
         this.state = State.IDLE;
-      } else {
-        this.lastCurrentTime = this.startPosition ? this.startPosition : startPosition;
-        this.state = State.STARTING;
       }
-      this.nextLoadPosition = this.startPosition = this.lastCurrentTime;
+      this.state = State.IDLE;
+      this.nextLoadPosition = this.startPosition = this.lastCurrentTime = startPosition;
       this.tick();
     } else {
       this.startPosition = startPosition;
@@ -122,7 +120,7 @@ class AudioStreamController extends BaseStreamController {
       // start fragment already requested OR start frag prefetch disable
       // exit loop
       // => if media not attached but start frag prefetch is enabled and start frag not requested yet, we will not exit loop
-      if (!this.media &&
+      if (this.trackLastLoaded === undefined || !this.media &&
           (this.startFragRequested || !config.startFragPrefetch)) {
         break;
       }
@@ -130,7 +128,7 @@ class AudioStreamController extends BaseStreamController {
       // determine next candidate fragment to be loaded, based on current position and
       //  end of buffer position
       // if we have not yet loaded any fragment, start loading from start position
-      if (this.loadedmetadata) {
+      if (this.loadedmetadata && this.media.currentTime) {
         pos = this.media.currentTime;
       } else {
         pos = this.nextLoadPosition;
@@ -159,7 +157,7 @@ class AudioStreamController extends BaseStreamController {
         // if track info not retrieved yet, switch state and wait for track retrieval
         if (typeof trackDetails === 'undefined') {
           this.state = State.WAITING_TRACK;
-          break;
+          return;
         }
 
         if (!audioSwitch && this._streamEnded(bufferInfo, trackDetails)) {
@@ -446,6 +444,7 @@ class AudioStreamController extends BaseStreamController {
       newDetails.PTSKnown = false;
     }
     track.details = newDetails;
+    this.trackLastLoaded = trackId;
 
     // compute start position
     if (!this.startFragRequested) {
