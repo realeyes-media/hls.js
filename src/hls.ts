@@ -163,11 +163,23 @@ export default class Hls extends Observer {
 
     let networkControllers = [levelController, streamController];
 
+    // optional audio track controller
+    let Controller = config.audioTrackController;
+    if (Controller) {
+      const audioTrackController = new Controller(this);
+
+      /**
+       * @member {AudioTrackController} audioTrackController
+       */
+      this.audioTrackController = audioTrackController;
+      networkControllers.push(audioTrackController);
+    }
+
     // optional audio stream controller
     /**
      * @var {ICoreComponent | Controller}
      */
-    let Controller = config.audioStreamController;
+    Controller = config.audioStreamController;
     if (Controller) {
       networkControllers.push(new Controller(this, fragmentTracker));
     }
@@ -192,18 +204,7 @@ export default class Hls extends Observer {
       fragmentTracker
     ];
 
-    // optional audio track and subtitle controller
-    Controller = config.audioTrackController;
-    if (Controller) {
-      const audioTrackController = new Controller(this);
-
-      /**
-       * @member {AudioTrackController} audioTrackController
-       */
-      this.audioTrackController = audioTrackController;
-      coreComponents.push(audioTrackController);
-    }
-
+    // optional subtitle controller
     Controller = config.subtitleTrackController;
     if (Controller) {
       const subtitleTrackController = new Controller(this);

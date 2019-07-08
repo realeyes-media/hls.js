@@ -34,7 +34,6 @@ class AudioTrackController extends TaskLoop {
       Event.LEVEL_LOADED,
       Event.ERROR
     );
-
     /**
      * @private
      * Currently selected index in `tracks`
@@ -70,6 +69,14 @@ class AudioTrackController extends TaskLoop {
      * @member {string}
      */
     this.audioGroupId = null;
+
+    /**
+     * @public
+     * Can a new track be loaded
+     * Set to true when we call startload and are loading track
+     * @member {boolean}
+     */
+    this.canload = false;
   }
 
   /**
@@ -107,8 +114,6 @@ class AudioTrackController extends TaskLoop {
     }
 
     logger.log(`audioTrack ${data.id} loaded`);
-
-    this.tracks[data.id].details = data.details;
 
     // check if current playlist is a live playlist
     // and if we have already our reload interval setup
@@ -190,6 +195,46 @@ class AudioTrackController extends TaskLoop {
 
     logger.warn('Network failure on audio-track id:', data.context.id);
     this._handleLoadError();
+  }
+
+  startLoad () {
+    let tracks = this.tracks;
+
+    this.canload = true;
+    this.levelRetryCount = 0;
+
+    // clean up live track details to force reload them, and reset load errors
+    if (tracks) {
+      tracks.forEach(track => {
+        track.loadError = 0;
+        const trackDetails = track.details;
+        if (trackDetails && trackDetails.live) {
+          track.details = undefined;
+        }
+      });
+    }
+    this.loadTrack();
+  }
+
+  stopLoad () {
+    this.canload = false;
+  }
+
+  loadTrack () {
+    logger.debug('call to loadTrack');
+
+    if (this._trackId !== null && this.canload) {
+      const trackObject = this.tracks[this._trackId];
+
+      if (typeof trackObject === 'object' &&
+        trackObject.url.length > 0) {
+        const { url, id } = trackObject;
+
+        logger.log(`Attempt loading track index ${trackObject} with URL-id ${id}`);
+
+        this.hls.trigger(Event.AUDIO_TRACK_LOADING, { url, id });
+      }
+    }
   }
 
   /**
