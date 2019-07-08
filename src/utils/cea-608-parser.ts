@@ -986,7 +986,7 @@ class Cea608Parser {
   parseCmd (a: number, b: number): boolean {
     let chNr: number | null = null;
 
-    let cond1 = (a === 0x14 || a === 0x1C) && (b >= 0x20 && b <= 0x2F);
+    let cond1 = (a === 0x14 || a === 0x15 || a === 0x1C || a === 0x1D) && (b >= 0x20 && b <= 0x2F);
     let cond2 = (a === 0x17 || a === 0x1F) && (b >= 0x21 && b <= 0x23);
     if (!(cond1 || cond2)) {
       return false;
@@ -999,15 +999,15 @@ class Cea608Parser {
       return true;
     }
 
-    if (a === 0x14 || a === 0x17) {
+    if (a === 0x14 || a === 0x15 || a === 0x17) {
       chNr = 1;
     } else {
       chNr = 2;
-    } // (a === 0x1C || a=== 0x1f)
+    } // (a === 0x1C || a === 0x1D || a=== 0x1f)
 
     let channel = this.channels[chNr - 1];
 
-    if (a === 0x14 || a === 0x1C) {
+    if (a === 0x14 || a === 0x15 || a === 0x1C || a === 0x1D) {
       if (b === 0x20) {
         channel.ccRCL();
       } else if (b === 0x21) {
@@ -1069,8 +1069,12 @@ class Cea608Parser {
         return false;
       }
       let channel = this.channels[chNr - 1];
+      // cea608 spec says midrow codes should inject a space
+      channel.insertChars([0x20]);
       channel.ccMIDROW(b);
       logger.log('DEBUG', 'MIDROW (' + numArrayToHexArray([a, b]) + ')');
+      this.lastCmdA = a;	
+      this.lastCmdB = b;
       return true;
     }
     return false;
@@ -1166,14 +1170,16 @@ class Cea608Parser {
 
       logger.log('INFO', 'Special char \'' + getCharForByte(oneCode) + '\' in channel ' + channelNr);
       charCodes = [oneCode];
+      this.lastCmdA = a;	
+      this.lastCmdB = b;
     } else if (a >= 0x20 && a <= 0x7f) {
       charCodes = (b === 0) ? [a] : [a, b];
+      this.lastCmdA = null;	
+      this.lastCmdB = null;
     }
     if (charCodes) {
       let hexCodes = numArrayToHexArray(charCodes);
       logger.log('DEBUG', 'Char codes =  ' + hexCodes.join(','));
-      this.lastCmdA = null;
-      this.lastCmdB = null;
     }
     return charCodes;
   }
@@ -1212,8 +1218,8 @@ class Cea608Parser {
     chNr = (a < 0x18) ? 1 : 2;
     channel = this.channels[chNr - 1];
     channel.setBkgData(bkgData);
-    this.lastCmdA = null;
-    this.lastCmdB = null;
+    this.lastCmdA = a;
+    this.lastCmdB = b;
     return true;
   }
 

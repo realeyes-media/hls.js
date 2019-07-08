@@ -6852,7 +6852,7 @@ function () {
   ;
 
   _proto.setDecryptDataFromLevelKey = function setDecryptDataFromLevelKey(levelkey, segmentNumber) {
-    var decryptdata = levelkey;
+    var decryptdata;
 
     if (levelkey && levelkey.method && levelkey.uri && !levelkey.iv) {
       decryptdata = new level_key_LevelKey(levelkey.baseuri, levelkey.reluri);
@@ -6860,7 +6860,7 @@ function () {
       decryptdata.iv = this.createInitializationVector(segmentNumber);
     }
 
-    return decryptdata;
+    return decryptdata || null;
   };
 
   fragment_createClass(Fragment, [{
@@ -14368,6 +14368,14 @@ function (_TaskLoop) {
      */
 
     _this.audioGroupId = null;
+    /**
+     * @public
+     * Can a new track be loaded
+     * Set to true when we call startload and are loading track
+     * @member {boolean}
+     */
+
+    _this.canload = false;
     return _this;
   }
   /**
@@ -14412,8 +14420,7 @@ function (_TaskLoop) {
       return;
     }
 
-    logger["logger"].log("audioTrack " + data.id + " loaded");
-    this.tracks[data.id].details = data.details; // check if current playlist is a live playlist
+    logger["logger"].log("audioTrack " + data.id + " loaded"); // check if current playlist is a live playlist
     // and if we have already our reload interval setup
 
     if (data.details.live && !this.hasInterval()) {
@@ -14500,6 +14507,47 @@ function (_TaskLoop) {
     logger["logger"].warn('Network failure on audio-track id:', data.context.id);
 
     this._handleLoadError();
+  };
+
+  _proto.startLoad = function startLoad() {
+    var tracks = this.tracks;
+    this.canload = true;
+    this.levelRetryCount = 0; // clean up live track details to force reload them, and reset load errors
+
+    if (tracks) {
+      tracks.forEach(function (track) {
+        track.loadError = 0;
+        var trackDetails = track.details;
+
+        if (trackDetails && trackDetails.live) {
+          track.details = undefined;
+        }
+      });
+    }
+
+    this.loadTrack();
+  };
+
+  _proto.stopLoad = function stopLoad() {
+    this.canload = false;
+  };
+
+  _proto.loadTrack = function loadTrack() {
+    logger["logger"].debug('call to loadTrack');
+
+    if (this._trackId !== null && this.canload) {
+      var trackObject = this.tracks[this._trackId];
+
+      if (typeof trackObject === 'object' && trackObject.url.length > 0) {
+        var url = trackObject.url,
+            id = trackObject.id;
+        logger["logger"].log("Attempt loading track index " + trackObject + " with URL-id " + id);
+        this.hls.trigger(events["default"].AUDIO_TRACK_LOADING, {
+          url: url,
+          id: id
+        });
+      }
+    }
   }
   /**
    * @type {AudioTrack[]} Audio-track list we own
@@ -14828,12 +14876,10 @@ function (_BaseStreamController) {
       if (lastCurrentTime > 0 && startPosition === -1) {
         logger["logger"].log("audio:override startPosition with lastCurrentTime @" + lastCurrentTime.toFixed(3));
         this.state = State.IDLE;
-      } else {
-        this.lastCurrentTime = this.startPosition ? this.startPosition : startPosition;
-        this.state = State.STARTING;
       }
 
-      this.nextLoadPosition = this.startPosition = this.lastCurrentTime;
+      this.state = State.IDLE;
+      this.nextLoadPosition = this.startPosition = this.lastCurrentTime = startPosition;
       this.tick();
     } else {
       this.startPosition = startPosition;
@@ -14872,14 +14918,14 @@ function (_BaseStreamController) {
         // => if media not attached but start frag prefetch is enabled and start frag not requested yet, we will not exit loop
 
 
-        if (!this.media && (this.startFragRequested || !config.startFragPrefetch)) {
+        if (this.trackLastLoaded === undefined || !this.media && (this.startFragRequested || !config.startFragPrefetch)) {
           break;
         } // determine next candidate fragment to be loaded, based on current position and
         //  end of buffer position
         // if we have not yet loaded any fragment, start loading from start position
 
 
-        if (this.loadedmetadata) {
+        if (this.loadedmetadata && this.media.currentTime) {
           pos = this.media.currentTime;
         } else {
           pos = this.nextLoadPosition;
@@ -14909,7 +14955,7 @@ function (_BaseStreamController) {
 
           if (typeof trackDetails === 'undefined') {
             this.state = State.WAITING_TRACK;
-            break;
+            return;
           }
 
           if (!audioSwitch && this._streamEnded(bufferInfo, trackDetails)) {
@@ -15225,7 +15271,8 @@ function (_BaseStreamController) {
       newDetails.PTSKnown = false;
     }
 
-    track.details = newDetails; // compute start position
+    track.details = newDetails;
+    this.trackLastLoaded = trackId; // compute start position
 
     if (!this.startFragRequested) {
       // compute start position if set to -1. use it straight away if value is defined
@@ -17725,7 +17772,7 @@ function () {
 
   _proto6.parseCmd = function parseCmd(a, b) {
     var chNr = null;
-    var cond1 = (a === 0x14 || a === 0x1C) && b >= 0x20 && b <= 0x2F;
+    var cond1 = (a === 0x14 || a === 0x15 || a === 0x1C || a === 0x1D) && b >= 0x20 && b <= 0x2F;
     var cond2 = (a === 0x17 || a === 0x1F) && b >= 0x21 && b <= 0x23;
 
     if (!(cond1 || cond2)) {
@@ -17740,16 +17787,16 @@ function () {
       return true;
     }
 
-    if (a === 0x14 || a === 0x17) {
+    if (a === 0x14 || a === 0x15 || a === 0x17) {
       chNr = 1;
     } else {
       chNr = 2;
-    } // (a === 0x1C || a=== 0x1f)
+    } // (a === 0x1C || a === 0x1D || a=== 0x1f)
 
 
     var channel = this.channels[chNr - 1];
 
-    if (a === 0x14 || a === 0x1C) {
+    if (a === 0x14 || a === 0x15 || a === 0x1C || a === 0x1D) {
       if (b === 0x20) {
         channel.ccRCL();
       } else if (b === 0x21) {
@@ -17814,9 +17861,13 @@ function () {
         return false;
       }
 
-      var channel = this.channels[chNr - 1];
+      var channel = this.channels[chNr - 1]; // cea608 spec says midrow codes should inject a space
+
+      channel.insertChars([0x20]);
       channel.ccMIDROW(b);
       cea_608_parser_logger.log('DEBUG', 'MIDROW (' + numArrayToHexArray([a, b]) + ')');
+      this.lastCmdA = a;
+      this.lastCmdB = b;
       return true;
     }
 
@@ -17929,15 +17980,17 @@ function () {
 
       cea_608_parser_logger.log('INFO', 'Special char \'' + getCharForByte(oneCode) + '\' in channel ' + channelNr);
       charCodes = [oneCode];
+      this.lastCmdA = a;
+      this.lastCmdB = b;
     } else if (a >= 0x20 && a <= 0x7f) {
       charCodes = b === 0 ? [a] : [a, b];
+      this.lastCmdA = null;
+      this.lastCmdB = null;
     }
 
     if (charCodes) {
       var hexCodes = numArrayToHexArray(charCodes);
       cea_608_parser_logger.log('DEBUG', 'Char codes =  ' + hexCodes.join(','));
-      this.lastCmdA = null;
-      this.lastCmdB = null;
     }
 
     return charCodes;
@@ -17979,8 +18032,8 @@ function () {
     chNr = a < 0x18 ? 1 : 2;
     channel = this.channels[chNr - 1];
     channel.setBkgData(bkgData);
-    this.lastCmdA = null;
-    this.lastCmdB = null;
+    this.lastCmdA = a;
+    this.lastCmdB = b;
     return true;
   }
   /**
@@ -20074,13 +20127,26 @@ function (_Observer) {
      */
 
     var streamController = _this.streamController = new stream_controller(hls_assertThisInitialized(_this), fragmentTracker);
-    var networkControllers = [levelController, streamController]; // optional audio stream controller
+    var networkControllers = [levelController, streamController]; // optional audio track controller
+
+    var Controller = config.audioTrackController;
+
+    if (Controller) {
+      var audioTrackController = new Controller(hls_assertThisInitialized(_this));
+      /**
+       * @member {AudioTrackController} audioTrackController
+       */
+
+      _this.audioTrackController = audioTrackController;
+      networkControllers.push(audioTrackController);
+    } // optional audio stream controller
 
     /**
      * @var {ICoreComponent | Controller}
      */
 
-    var Controller = config.audioStreamController;
+
+    Controller = config.audioStreamController;
 
     if (Controller) {
       networkControllers.push(new Controller(hls_assertThisInitialized(_this), fragmentTracker));
@@ -20095,19 +20161,7 @@ function (_Observer) {
      * @var {ICoreComponent[]}
      */
 
-    var coreComponents = [playListLoader, fragmentLoader, keyLoader, abrController, bufferController, capLevelController, fpsController, id3TrackController, fragmentTracker]; // optional audio track and subtitle controller
-
-    Controller = config.audioTrackController;
-
-    if (Controller) {
-      var audioTrackController = new Controller(hls_assertThisInitialized(_this));
-      /**
-       * @member {AudioTrackController} audioTrackController
-       */
-
-      _this.audioTrackController = audioTrackController;
-      coreComponents.push(audioTrackController);
-    }
+    var coreComponents = [playListLoader, fragmentLoader, keyLoader, abrController, bufferController, capLevelController, fpsController, id3TrackController, fragmentTracker]; // optional subtitle controller
 
     Controller = config.subtitleTrackController;
 
