@@ -1073,7 +1073,7 @@ class Cea608Parser {
       channel.insertChars([0x20]);
       channel.ccMIDROW(b);
       logger.log('DEBUG', 'MIDROW (' + numArrayToHexArray([a, b]) + ')');
-      this.lastCmdA = a;	
+      this.lastCmdA = a;
       this.lastCmdB = b;
       return true;
     }
@@ -1170,11 +1170,11 @@ class Cea608Parser {
 
       logger.log('INFO', 'Special char \'' + getCharForByte(oneCode) + '\' in channel ' + channelNr);
       charCodes = [oneCode];
-      this.lastCmdA = a;	
+      this.lastCmdA = a;
       this.lastCmdB = b;
     } else if (a >= 0x20 && a <= 0x7f) {
       charCodes = (b === 0) ? [a] : [a, b];
-      this.lastCmdA = null;	
+      this.lastCmdA = null;
       this.lastCmdB = null;
     }
     if (charCodes) {
