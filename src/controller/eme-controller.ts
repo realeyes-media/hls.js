@@ -61,10 +61,10 @@ class EMEController extends EventHandler {
   /**
    * Creates requests for licenses
    * @private
-   * @param {MediaKeys} session Media Keys Session created on the Media Keys object https://developer.mozilla.org/en-US/docs/Web/API/MediaKeySession
+   * @param {MediaKeySession} session Media Keys Session created on the Media Keys object https://developer.mozilla.org/en-US/docs/Web/API/MediaKeySession
    * @param {Level | AudioTrack} levelOrAudioTrack Either a level or audio track mapped from manifestParsed data, used by client should different licenses be
    * requred for different levels or audio tracks
-   * @returns {Promise<any>} Promise resolved or rejected by _onKeySessionMessage
+   * @returns {Promise<any>} Promise resolved or rejected by updating MediaKeySession with license
    */
   private _onMediaKeySessionCreated (session: MediaKeySession, levelOrAudioTrack: any): Promise<any> {
     logger.log('Generating license request');
