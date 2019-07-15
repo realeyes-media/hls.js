@@ -239,7 +239,7 @@ class StreamController extends BaseStreamController {
       }
 
       frag = this._ensureFragmentAtLivePoint(levelDetails, bufferEnd, start, end, fragPrevious, fragments, fragLen);
-      // if it explicitely returns null don't load any fragment and exit function now
+      // if it explicitly returns null don't load any fragment and exit function now
       if (frag === null) {
         return;
       }
