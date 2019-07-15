@@ -48,7 +48,7 @@ class EMEController extends EventHandler {
     super(hls,
       Event.MEDIA_ATTACHING,
       Event.MANIFEST_PARSED,
-      Event.MEDIA_DETACHING,
+      Event.MEDIA_DETACHING
     );
 
     this._emeEnabled = hls.config.emeEnabled;
@@ -59,52 +59,41 @@ class EMEController extends EventHandler {
   }
 
   /**
-   * Handles key session messages and requests licenses
+   * Creates requests for licenses
    * @private
-   * @param {MediaKeyMessageEvent} event The event resulting from generating a license request on a MediaKeySession
+   * @param {MediaKeySession} session Media Keys Session created on the Media Keys object https://developer.mozilla.org/en-US/docs/Web/API/MediaKeySession
    * @param {Level | AudioTrack} levelOrAudioTrack Either a level or audio track mapped from manifestParsed data, used by client should different licenses be
    * requred for different levels or audio tracks
-   * @param {Promise.resolve} resolve Resolve method to be called on successful license update on MediaKeySession
-   * @param {Promise.resolve} reject Reject method to be called on unsuccessful license update on MediaKeySession
-   * @param {Event<MediaKeyMessageEvent>} event Message event created by license request generation
+   * @returns {Promise<any>} Promise resolved or rejected by updating MediaKeySession with license
    */
-  private _onKeySessionMessage = (event: MediaKeyMessageEvent, levelOrAudioTrack: any, resolve, reject) => {
-    logger.log('Received key session message, requesting license');
-
-    this.getEMELicense(levelOrAudioTrack, event).then((license: ArrayBuffer) => {
-      logger.log('Received license data, updating key-session');
-      return (event.target! as MediaKeySession).update(license).then(() => {
-        resolve();
-      }).catch((err) => {
-        reject(ErrorDetails.KEY_SYSTEM_LICENSE_UPDATE_FAILED);
-      });
-    }).catch((err) => {
-      reject(ErrorDetails.KEY_SYSTEM_LICENSE_REQUEST_FAILED);
-    });
-  }
-
-  /**
-   * Creates and handles the generation of requests for licenses
-   * @private
-   * @param {MediaKeys} session Media Keys Session created on the Media Keys object https://developer.mozilla.org/en-US/docs/Web/API/MediaKeySession
-   * @param {Level | AudioTrack} levelOrAudioTrack Either a level or audio track mapped from manifestParsed data, used by client should different licenses be
-   * requred for different levels or audio tracks
-   * @returns {Promise<any>} Promise resolved or rejected by _onKeySessionMessage
-   */
-  private _onMediaKeySessionCreated(session: MediaKeySession, levelOrAudioTrack: any): Promise<any> {
+  private _onMediaKeySessionCreated (session: MediaKeySession, levelOrAudioTrack: any): Promise<any> {
     logger.log('Generating license request');
 
     return this.getEMEInitializationData(levelOrAudioTrack, this.initDataType, this.initData).then((initDataInfo) => {
       const messagePromise = new Promise((resolve, reject) => {
         session.addEventListener('message', (event: MediaKeyMessageEvent) => {
-          this._onKeySessionMessage(event, levelOrAudioTrack, resolve, reject)
+          logger.log('Received key session message, requesting license');
+
+          this.getEMELicense(levelOrAudioTrack, event).catch(() => {
+            reject(ErrorDetails.KEY_SYSTEM_LICENSE_REQUEST_FAILED);
+          }).then((license: ArrayBuffer) => {
+            logger.log('Received license data, updating key session');
+
+            return (event.target! as MediaKeySession).update(license).then(() => {
+              logger.log('Key session updated with license');
+
+              resolve();
+            }).catch(() => {
+              reject(ErrorDetails.KEY_SYSTEM_LICENSE_UPDATE_FAILED);
+            });
+          });
         });
       });
 
       return session.generateRequest(initDataInfo.initDataType, initDataInfo.initData).catch((err) => {
         logger.error('Failed to generate license request:', err);
 
-        return Promise.reject(ErrorDetails.KEY_SYSTEM_GENERATE_REQUEST_FAILED)
+        return Promise.reject(ErrorDetails.KEY_SYSTEM_GENERATE_REQUEST_FAILED);
       }).then(() => {
         return messagePromise;
       });
@@ -179,7 +168,6 @@ class EMEController extends EventHandler {
         return Promise.reject(ErrorDetails.KEY_SYSTEM_NO_KEYS);
       });
     }
-    
   }
 
   /**
@@ -256,7 +244,13 @@ class EMEController extends EventHandler {
 
       const keySessionRequests = levelRequests.concat(audioRequests);
 
-      return Promise.all(keySessionRequests);
+      return keySessionRequests.reduce((prevKeySessionRequest, currentKeySessionRequest) => {
+        return prevKeySessionRequest.then((prevKeySessionResponses) => {
+          return currentKeySessionRequest.then((keySessionResponse) => {
+            return [...prevKeySessionResponses, keySessionResponse];
+          });
+        });
+      }, Promise.resolve([]));
     }).then((keySessionResponses) => {
       logger.log('Created media key sessions');
 
@@ -264,7 +258,11 @@ class EMEController extends EventHandler {
         return this._onMediaKeySessionCreated(keySessionResponse.keySession, keySessionResponse.levelOrAudioTrack);
       });
 
-      return Promise.all(licenseRequests);
+      return licenseRequests.reduce((prevLicenseRequest, currentLicenseRequest) => {
+        return prevLicenseRequest.then(() => {
+          return currentLicenseRequest;
+        });
+      }, Promise.resolve());
     }).then(() => {
       logger.log('EME sucessfully configured');
 

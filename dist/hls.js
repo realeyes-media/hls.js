@@ -92,7 +92,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = "./src/hls.js");
+/******/ 	return __webpack_require__(__webpack_require__.s = "./src/hls.ts");
 /******/ })
 /************************************************************************/
 /******/ ({
@@ -835,10 +835,10 @@ module.exports = function (moduleId, options) {
   !*** ./src/crypt/decrypter.js + 3 modules ***!
   \********************************************/
 /*! exports provided: default */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/errors.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/events.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/get-self-scope.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/logger.js because of ./src/hls.js */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/errors.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/events.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/get-self-scope.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/logger.js because of ./src/hls.ts */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -1292,14 +1292,14 @@ function () {
   !*** ./src/demux/demuxer-inline.js + 11 modules ***!
   \**************************************************/
 /*! exports provided: default */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/crypt/decrypter.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/demux/id3.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/demux/mp4demuxer.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/errors.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/events.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/polyfills/number-isFinite.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/get-self-scope.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/logger.js because of ./src/hls.js */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/crypt/decrypter.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/demux/id3.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/demux/mp4demuxer.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/errors.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/events.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/polyfills/number-isFinite.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/get-self-scope.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/logger.js because of ./src/hls.ts */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6545,9 +6545,9 @@ var HlsEvents = {
 
 /***/ }),
 
-/***/ "./src/hls.js":
+/***/ "./src/hls.ts":
 /*!*********************************!*\
-  !*** ./src/hls.js + 49 modules ***!
+  !*** ./src/hls.ts + 50 modules ***!
   \*********************************/
 /*! exports provided: default */
 /*! ModuleConcatenation bailout: Cannot concat with ./src/crypt/decrypter.js because of ./src/demux/demuxer-worker.js */
@@ -6793,6 +6793,7 @@ function () {
     this.duration = void 0;
     this.sn = 0;
     this.levelkey = void 0;
+    this.initSegment = void 0;
   }
 
   var _proto = Fragment.prototype;
@@ -6851,7 +6852,7 @@ function () {
   ;
 
   _proto.setDecryptDataFromLevelKey = function setDecryptDataFromLevelKey(levelkey, segmentNumber) {
-    var decryptdata = levelkey;
+    var decryptdata;
 
     if (levelkey && levelkey.method && levelkey.uri && !levelkey.iv) {
       decryptdata = new level_key_LevelKey(levelkey.baseuri, levelkey.reluri);
@@ -6859,7 +6860,7 @@ function () {
       decryptdata.iv = this.createInitializationVector(segmentNumber);
     }
 
-    return decryptdata;
+    return decryptdata || null;
   };
 
   fragment_createClass(Fragment, [{
@@ -6958,6 +6959,14 @@ function () {
 }();
 
 
+// CONCATENATED MODULE: ./src/loader/init-segment.ts
+var InitSegment = function InitSegment(fragment) {
+  this.fragment = void 0;
+  this.data = null;
+  this.fragment = fragment;
+};
+
+
 // CONCATENATED MODULE: ./src/loader/level.js
 
 
@@ -6973,7 +6982,7 @@ function () {
     this.endCC = 0;
     this.endSN = 0;
     this.fragments = [];
-    this.initSegment = null;
+    this.initSegments = {};
     this.live = true;
     this.needSidxRanges = false;
     this.startCC = 0;
@@ -7100,7 +7109,7 @@ function () {
 }();
 
 /* harmony default export */ var attr_list = (AttrList);
-// CONCATENATED MODULE: ./src/utils/codecs.js
+// CONCATENATED MODULE: ./src/utils/codecs.ts
 // from http://mp4ra.org/codecs.html
 var sampleEntryCodesISO = {
   audio: {
@@ -7172,11 +7181,12 @@ function isCodecType(codec, type) {
 }
 
 function isCodecSupportedInMp4(codec, type) {
-  return window.MediaSource.isTypeSupported((type || 'video') + "/mp4;codecs=\"" + codec + "\"");
+  return MediaSource.isTypeSupported((type || 'video') + "/mp4;codecs=\"" + codec + "\"");
 }
 
 
 // CONCATENATED MODULE: ./src/loader/m3u8-parser.js
+
 
 
 
@@ -7358,6 +7368,7 @@ function () {
     var frag = new fragment_Fragment();
     var result;
     var i;
+    var initSegment = null;
     var firstPdtIndex = null;
     LEVEL_PLAYLIST_REGEX_FAST.lastIndex = 0;
 
@@ -7382,7 +7393,12 @@ function () {
           frag.level = id;
           frag.cc = cc;
           frag.urlId = levelUrlId;
-          frag.baseurl = baseurl; // avoid sliced strings    https://github.com/video-dev/hls.js/issues/939
+          frag.baseurl = baseurl;
+
+          if (initSegment) {
+            frag.initSegment = initSegment.fragment.relurl;
+          } // avoid sliced strings    https://github.com/video-dev/hls.js/issues/939
+
 
           frag.relurl = (' ' + result[3]).slice(1);
           assignProgramDateTime(frag, prevFrag);
@@ -7511,6 +7527,9 @@ function () {
               frag.type = type;
               frag.sn = 'initSegment';
               level.initSegment = frag;
+              frag.cc = cc;
+              initSegment = new InitSegment(frag);
+              level.initSegments[frag.relurl] = initSegment;
               frag = new fragment_Fragment();
               frag.rawProgramDateTime = level.initSegment.rawProgramDateTime;
               break;
@@ -9060,7 +9079,7 @@ function (_EventEmitter) {
 
 var global = Object(get_self_scope["getSelfScope"])(); // safeguard for code that might run both on worker and main thread
 
-var MediaSource = getMediaSource();
+var demuxer_MediaSource = getMediaSource();
 
 var demuxer_Demuxer =
 /*#__PURE__*/
@@ -9090,9 +9109,9 @@ function () {
     observer.on(events["default"].FRAG_PARSING_USERDATA, forwardMessage);
     observer.on(events["default"].INIT_PTS_FOUND, forwardMessage);
     var typeSupported = {
-      mp4: MediaSource.isTypeSupported('video/mp4'),
-      mpeg: MediaSource.isTypeSupported('audio/mpeg'),
-      mp3: MediaSource.isTypeSupported('audio/mp4; codecs="mp3"')
+      mp4: demuxer_MediaSource.isTypeSupported('video/mp4'),
+      mpeg: demuxer_MediaSource.isTypeSupported('audio/mpeg'),
+      mp3: demuxer_MediaSource.isTypeSupported('audio/mp4; codecs="mp3"')
     }; // navigator.vendor is not always available in Web Worker
     // refer to https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/navigator
 
@@ -9254,6 +9273,10 @@ function () {
 
 
 
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 /**
  * @module LevelHelper
  *
@@ -9369,9 +9392,9 @@ function updateFragPTSDTS(details, frag, startPTS, endPTS, startDTS, endDTS) {
   return drift;
 }
 function mergeDetails(oldDetails, newDetails) {
-  // potentially retrieve cached initsegment
-  if (newDetails.initSegment && oldDetails.initSegment) {
-    newDetails.initSegment = oldDetails.initSegment;
+  // potentially retrieve cached initsegments
+  if (newDetails.initSegments && oldDetails.initSegments) {
+    newDetails.initSegments = _objectSpread({}, newDetails.initSegments, oldDetails.initSegments);
   } // check if old/new playlists have fragments in common
   // loop through overlapping SN and update startPTS , cc, and duration if any found
 
@@ -9495,14 +9518,14 @@ function computeReloadInterval(currentPlaylist, newPlaylist, lastRequestTime) {
 
   return Math.round(reloadInterval);
 }
-// CONCATENATED MODULE: ./src/utils/time-ranges.js
+// CONCATENATED MODULE: ./src/utils/time-ranges.ts
 /**
  *  TimeRanges to string helper
  */
 var TimeRanges = {
   toString: function toString(r) {
-    var log = '',
-        len = r.length;
+    var log = '';
+    var len = r.length;
 
     for (var i = 0; i < len; i++) {
       log += '[' + r.start(i).toFixed(3) + ',' + r.end(i).toFixed(3) + ']';
@@ -10292,6 +10315,11 @@ function (_TaskLoop) {
     this.fragmentTracker = null;
   };
 
+  _proto.computeLivePosition = function computeLivePosition(sliding, levelDetails) {
+    var targetLatency = this.config.liveSyncDuration !== undefined ? this.config.liveSyncDuration : this.config.liveSyncDurationCount * levelDetails.targetduration;
+    return sliding + Math.max(0, levelDetails.totalduration - targetLatency);
+  };
+
   return BaseStreamController;
 }(TaskLoop);
 
@@ -10539,30 +10567,25 @@ function (_BaseStreamController) {
     var start = fragments[0].start,
         end = fragments[fragLen - 1].start + fragments[fragLen - 1].duration,
         bufferEnd = bufferInfo.end,
-        frag;
+        frag; // in case of live playlist we need to ensure that requested position is not located before playlist start
 
-    if (levelDetails.initSegment && !levelDetails.initSegment.data) {
-      frag = levelDetails.initSegment;
+    if (levelDetails.live) {
+      var initialLiveManifestSize = this.config.initialLiveManifestSize;
+
+      if (fragLen < initialLiveManifestSize) {
+        logger["logger"].warn("Can not start playback of a level, reason: not enough fragments " + fragLen + " < " + initialLiveManifestSize);
+        return;
+      }
+
+      frag = this._ensureFragmentAtLivePoint(levelDetails, bufferEnd, start, end, fragPrevious, fragments, fragLen); // if it explicitly returns null don't load any fragment and exit function now
+
+      if (frag === null) {
+        return;
+      }
     } else {
-      // in case of live playlist we need to ensure that requested position is not located before playlist start
-      if (levelDetails.live) {
-        var initialLiveManifestSize = this.config.initialLiveManifestSize;
-
-        if (fragLen < initialLiveManifestSize) {
-          logger["logger"].warn("Can not start playback of a level, reason: not enough fragments " + fragLen + " < " + initialLiveManifestSize);
-          return;
-        }
-
-        frag = this._ensureFragmentAtLivePoint(levelDetails, bufferEnd, start, end, fragPrevious, fragments, fragLen); // if it explicitely returns null don't load any fragment and exit function now
-
-        if (frag === null) {
-          return;
-        }
-      } else {
-        // VoD playlist: if bufferEnd before start of playlist, load first fragment
-        if (bufferEnd < start) {
-          frag = fragments[0];
-        }
+      // VoD playlist: if bufferEnd before start of playlist, load first fragment
+      if (bufferEnd < start) {
+        frag = fragments[0];
       }
     }
 
@@ -10571,6 +10594,10 @@ function (_BaseStreamController) {
     }
 
     if (frag) {
+      if (levelDetails.initSegments[frag.initSegment] && !levelDetails.initSegments[frag.initSegment].data) {
+        frag = levelDetails.initSegments[frag.initSegment].fragment;
+      }
+
       if (frag.encrypted && !this.hls.config.emeEnabled) {
         logger["logger"].log("Loading key for " + frag.sn + " of [" + levelDetails.startSN + " ," + levelDetails.endSN + "],level " + level);
 
@@ -11194,7 +11221,7 @@ function (_BaseStreamController) {
       } else if (fragLoaded.sn === 'initSegment') {
         this.state = State.IDLE;
         stats.tparsed = stats.tbuffered = window.performance.now();
-        details.initSegment.data = data.payload;
+        details.initSegments[data.frag.relurl].data = data.payload;
         hls.trigger(events["default"].FRAG_BUFFERED, {
           stats: stats,
           frag: fragCurrent,
@@ -11217,7 +11244,7 @@ function (_BaseStreamController) {
 
 
         var accurateTimeOffset = !(media && media.seeking) && (details.PTSKnown || !details.live);
-        var initSegmentData = details.initSegment ? details.initSegment.data : [];
+        var initSegmentData = details.initSegments[fragCurrent.initSegment] ? details.initSegments[fragCurrent.initSegment].data : [];
 
         var audioCodec = this._getAudioCodec(currentLevel); // transmux the MPEG-TS data to ISO-BMFF segments
 
@@ -11699,11 +11726,6 @@ function (_BaseStreamController) {
 
   _proto.swapAudioCodec = function swapAudioCodec() {
     this.audioCodecSwap = !this.audioCodecSwap;
-  };
-
-  _proto.computeLivePosition = function computeLivePosition(sliding, levelDetails) {
-    var targetLatency = this.config.liveSyncDuration !== undefined ? this.config.liveSyncDuration : this.config.liveSyncDurationCount * levelDetails.targetduration;
-    return sliding + Math.max(0, levelDetails.totalduration - targetLatency);
   }
   /**
    * Seeks to the set startPosition if not equal to the mediaElement's current time.
@@ -12327,12 +12349,12 @@ function (_EventHandler) {
 // EXTERNAL MODULE: ./src/demux/id3.js
 var id3 = __webpack_require__("./src/demux/id3.js");
 
-// CONCATENATED MODULE: ./src/utils/texttrack-utils.js
+// CONCATENATED MODULE: ./src/utils/texttrack-utils.ts
 function sendAddTrackEvent(track, videoEl) {
-  var event = null;
+  var event;
 
   try {
-    event = new window.Event('addtrack');
+    event = new Event('addtrack');
   } catch (err) {
     // for IE11
     event = document.createEvent('Event');
@@ -12471,7 +12493,7 @@ function is_supported_isSupported() {
   var sourceBufferValidAPI = !sourceBuffer || sourceBuffer.prototype && typeof sourceBuffer.prototype.appendBuffer === 'function' && typeof sourceBuffer.prototype.remove === 'function';
   return !!isTypeSupported && !!sourceBufferValidAPI;
 }
-// CONCATENATED MODULE: ./src/utils/ewma.js
+// CONCATENATED MODULE: ./src/utils/ewma.ts
 /*
  * compute an Exponential Weighted moving average
  * - https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
@@ -12482,6 +12504,9 @@ var EWMA =
 function () {
   //  About half of the estimated value will be from the last |halfLife| samples by weight.
   function EWMA(halfLife) {
+    this.alpha_ = void 0;
+    this.estimate_ = void 0;
+    this.totalWeight_ = void 0;
     // Larger values of alpha expire historical data more slowly.
     this.alpha_ = halfLife ? Math.exp(Math.log(0.5) / halfLife) : 0;
     this.estimate_ = 0;
@@ -12513,7 +12538,7 @@ function () {
 }();
 
 /* harmony default export */ var ewma = (EWMA);
-// CONCATENATED MODULE: ./src/utils/ewma-bandwidth-estimator.js
+// CONCATENATED MODULE: ./src/utils/ewma-bandwidth-estimator.ts
 /*
  * EWMA Bandwidth Estimator
  *  - heavily inspired from shaka-player
@@ -12526,7 +12551,14 @@ function () {
 var ewma_bandwidth_estimator_EwmaBandWidthEstimator =
 /*#__PURE__*/
 function () {
+  // TODO(typescript-hls)
   function EwmaBandWidthEstimator(hls, slow, fast, defaultEstimate) {
+    this.hls = void 0;
+    this.defaultEstimate_ = void 0;
+    this.minWeight_ = void 0;
+    this.minDelayMs_ = void 0;
+    this.slow_ = void 0;
+    this.fast_ = void 0;
     this.hls = hls;
     this.defaultEstimate_ = defaultEstimate;
     this.minWeight_ = 0.001;
@@ -14336,6 +14368,14 @@ function (_TaskLoop) {
      */
 
     _this.audioGroupId = null;
+    /**
+     * @public
+     * Can a new track be loaded
+     * Set to true when we call startload and are loading track
+     * @member {boolean}
+     */
+
+    _this.canload = false;
     return _this;
   }
   /**
@@ -14380,8 +14420,7 @@ function (_TaskLoop) {
       return;
     }
 
-    logger["logger"].log("audioTrack " + data.id + " loaded");
-    this.tracks[data.id].details = data.details; // check if current playlist is a live playlist
+    logger["logger"].log("audioTrack " + data.id + " loaded"); // check if current playlist is a live playlist
     // and if we have already our reload interval setup
 
     if (data.details.live && !this.hasInterval()) {
@@ -14468,6 +14507,47 @@ function (_TaskLoop) {
     logger["logger"].warn('Network failure on audio-track id:', data.context.id);
 
     this._handleLoadError();
+  };
+
+  _proto.startLoad = function startLoad() {
+    var tracks = this.tracks;
+    this.canload = true;
+    this.levelRetryCount = 0; // clean up live track details to force reload them, and reset load errors
+
+    if (tracks) {
+      tracks.forEach(function (track) {
+        track.loadError = 0;
+        var trackDetails = track.details;
+
+        if (trackDetails && trackDetails.live) {
+          track.details = undefined;
+        }
+      });
+    }
+
+    this.loadTrack();
+  };
+
+  _proto.stopLoad = function stopLoad() {
+    this.canload = false;
+  };
+
+  _proto.loadTrack = function loadTrack() {
+    logger["logger"].debug('call to loadTrack');
+
+    if (this._trackId !== null && this.canload) {
+      var trackObject = this.tracks[this._trackId];
+
+      if (typeof trackObject === 'object' && trackObject.url.length > 0) {
+        var url = trackObject.url,
+            id = trackObject.id;
+        logger["logger"].log("Attempt loading track index " + trackObject + " with URL-id " + id);
+        this.hls.trigger(events["default"].AUDIO_TRACK_LOADING, {
+          url: url,
+          id: id
+        });
+      }
+    }
   }
   /**
    * @type {AudioTrack[]} Audio-track list we own
@@ -14796,12 +14876,10 @@ function (_BaseStreamController) {
       if (lastCurrentTime > 0 && startPosition === -1) {
         logger["logger"].log("audio:override startPosition with lastCurrentTime @" + lastCurrentTime.toFixed(3));
         this.state = State.IDLE;
-      } else {
-        this.lastCurrentTime = this.startPosition ? this.startPosition : startPosition;
-        this.state = State.STARTING;
       }
 
-      this.nextLoadPosition = this.startPosition = this.lastCurrentTime;
+      this.state = State.IDLE;
+      this.nextLoadPosition = this.startPosition = this.lastCurrentTime = startPosition;
       this.tick();
     } else {
       this.startPosition = startPosition;
@@ -14840,14 +14918,14 @@ function (_BaseStreamController) {
         // => if media not attached but start frag prefetch is enabled and start frag not requested yet, we will not exit loop
 
 
-        if (!this.media && (this.startFragRequested || !config.startFragPrefetch)) {
+        if (this.trackLastLoaded === undefined || !this.media && (this.startFragRequested || !config.startFragPrefetch)) {
           break;
         } // determine next candidate fragment to be loaded, based on current position and
         //  end of buffer position
         // if we have not yet loaded any fragment, start loading from start position
 
 
-        if (this.loadedmetadata) {
+        if (this.loadedmetadata && this.media.currentTime) {
           pos = this.media.currentTime;
         } else {
           pos = this.nextLoadPosition;
@@ -14877,7 +14955,7 @@ function (_BaseStreamController) {
 
           if (typeof trackDetails === 'undefined') {
             this.state = State.WAITING_TRACK;
-            break;
+            return;
           }
 
           if (!audioSwitch && this._streamEnded(bufferInfo, trackDetails)) {
@@ -14914,88 +14992,84 @@ function (_BaseStreamController) {
             }
           }
 
-          if (trackDetails.initSegment && !trackDetails.initSegment.data) {
-            frag = trackDetails.initSegment;
-          } // eslint-disable-line brace-style
-          // if bufferEnd before start of playlist, load first fragment
-          else if (bufferEnd <= start) {
-              frag = fragments[0];
+          if (bufferEnd <= start) {
+            frag = fragments[0];
 
-              if (this.videoTrackCC !== null && frag.cc !== this.videoTrackCC) {
-                // Ensure we find a fragment which matches the continuity of the video track
-                frag = findFragWithCC(fragments, this.videoTrackCC);
+            if (this.videoTrackCC !== null && frag.cc !== this.videoTrackCC) {
+              // Ensure we find a fragment which matches the continuity of the video track
+              frag = findFragWithCC(fragments, this.videoTrackCC);
+            }
+
+            if (trackDetails.live && frag.loadIdx && frag.loadIdx === this.fragLoadIdx) {
+              // we just loaded this first fragment, and we are still lagging behind the start of the live playlist
+              // let's force seek to start
+              var nextBuffered = bufferInfo.nextStart ? bufferInfo.nextStart : start;
+              logger["logger"].log("no alt audio available @currentTime:" + this.media.currentTime + ", seeking @" + (nextBuffered + 0.05));
+              this.media.currentTime = nextBuffered + 0.05;
+              return;
+            }
+          } else {
+            var foundFrag;
+            var maxFragLookUpTolerance = config.maxFragLookUpTolerance;
+            var fragNext = fragPrevious ? fragments[fragPrevious.sn - fragments[0].sn + 1] : undefined;
+
+            var fragmentWithinToleranceTest = function fragmentWithinToleranceTest(candidate) {
+              // offset should be within fragment boundary - config.maxFragLookUpTolerance
+              // this is to cope with situations like
+              // bufferEnd = 9.991
+              // frag[Ø] : [0,10]
+              // frag[1] : [10,20]
+              // bufferEnd is within frag[0] range ... although what we are expecting is to return frag[1] here
+              //              frag start               frag start+duration
+              //                  |-----------------------------|
+              //              <--->                         <--->
+              //  ...--------><-----------------------------><---------....
+              // previous frag         matching fragment         next frag
+              //  return -1             return 0                 return 1
+              // logger.log(`level/sn/start/end/bufEnd:${level}/${candidate.sn}/${candidate.start}/${(candidate.start+candidate.duration)}/${bufferEnd}`);
+              // Set the lookup tolerance to be small enough to detect the current segment - ensures we don't skip over very small segments
+              var candidateLookupTolerance = Math.min(maxFragLookUpTolerance, candidate.duration);
+
+              if (candidate.start + candidate.duration - candidateLookupTolerance <= bufferEnd) {
+                return 1;
+              } else if (candidate.start - candidateLookupTolerance > bufferEnd && candidate.start) {
+                // if maxFragLookUpTolerance will have negative value then don't return -1 for first element
+                return -1;
               }
 
-              if (trackDetails.live && frag.loadIdx && frag.loadIdx === this.fragLoadIdx) {
-                // we just loaded this first fragment, and we are still lagging behind the start of the live playlist
-                // let's force seek to start
-                var nextBuffered = bufferInfo.nextStart ? bufferInfo.nextStart : start;
-                logger["logger"].log("no alt audio available @currentTime:" + this.media.currentTime + ", seeking @" + (nextBuffered + 0.05));
-                this.media.currentTime = nextBuffered + 0.05;
-                return;
+              return 0;
+            };
+
+            if (bufferEnd < end) {
+              if (bufferEnd > end - maxFragLookUpTolerance) {
+                maxFragLookUpTolerance = 0;
+              } // Prefer the next fragment if it's within tolerance
+
+
+              if (fragNext && !fragmentWithinToleranceTest(fragNext)) {
+                foundFrag = fragNext;
+              } else {
+                foundFrag = binary_search.search(fragments, fragmentWithinToleranceTest);
               }
             } else {
-              var foundFrag;
-              var maxFragLookUpTolerance = config.maxFragLookUpTolerance;
-              var fragNext = fragPrevious ? fragments[fragPrevious.sn - fragments[0].sn + 1] : undefined;
+              // reach end of playlist
+              foundFrag = fragments[fragLen - 1];
+            }
 
-              var fragmentWithinToleranceTest = function fragmentWithinToleranceTest(candidate) {
-                // offset should be within fragment boundary - config.maxFragLookUpTolerance
-                // this is to cope with situations like
-                // bufferEnd = 9.991
-                // frag[Ø] : [0,10]
-                // frag[1] : [10,20]
-                // bufferEnd is within frag[0] range ... although what we are expecting is to return frag[1] here
-                //              frag start               frag start+duration
-                //                  |-----------------------------|
-                //              <--->                         <--->
-                //  ...--------><-----------------------------><---------....
-                // previous frag         matching fragment         next frag
-                //  return -1             return 0                 return 1
-                // logger.log(`level/sn/start/end/bufEnd:${level}/${candidate.sn}/${candidate.start}/${(candidate.start+candidate.duration)}/${bufferEnd}`);
-                // Set the lookup tolerance to be small enough to detect the current segment - ensures we don't skip over very small segments
-                var candidateLookupTolerance = Math.min(maxFragLookUpTolerance, candidate.duration);
+            if (foundFrag) {
+              frag = foundFrag;
+              start = foundFrag.start; // logger.log('find SN matching with pos:' +  bufferEnd + ':' + frag.sn);
 
-                if (candidate.start + candidate.duration - candidateLookupTolerance <= bufferEnd) {
-                  return 1;
-                } else if (candidate.start - candidateLookupTolerance > bufferEnd && candidate.start) {
-                  // if maxFragLookUpTolerance will have negative value then don't return -1 for first element
-                  return -1;
-                }
-
-                return 0;
-              };
-
-              if (bufferEnd < end) {
-                if (bufferEnd > end - maxFragLookUpTolerance) {
-                  maxFragLookUpTolerance = 0;
-                } // Prefer the next fragment if it's within tolerance
-
-
-                if (fragNext && !fragmentWithinToleranceTest(fragNext)) {
-                  foundFrag = fragNext;
+              if (fragPrevious && frag.level === fragPrevious.level && frag.sn === fragPrevious.sn) {
+                if (frag.sn < trackDetails.endSN) {
+                  frag = fragments[frag.sn + 1 - trackDetails.startSN];
+                  logger["logger"].log("SN just loaded, load next one: " + frag.sn);
                 } else {
-                  foundFrag = binary_search.search(fragments, fragmentWithinToleranceTest);
-                }
-              } else {
-                // reach end of playlist
-                foundFrag = fragments[fragLen - 1];
-              }
-
-              if (foundFrag) {
-                frag = foundFrag;
-                start = foundFrag.start; // logger.log('find SN matching with pos:' +  bufferEnd + ':' + frag.sn);
-
-                if (fragPrevious && frag.level === fragPrevious.level && frag.sn === fragPrevious.sn) {
-                  if (frag.sn < trackDetails.endSN) {
-                    frag = fragments[frag.sn + 1 - trackDetails.startSN];
-                    logger["logger"].log("SN just loaded, load next one: " + frag.sn);
-                  } else {
-                    frag = null;
-                  }
+                  frag = null;
                 }
               }
             }
+          }
 
           if (frag) {
             // logger.log('      loading frag ' + i +',pos/bufEnd:' + pos.toFixed(3) + '/' + bufferEnd.toFixed(3));
@@ -15008,6 +15082,10 @@ function (_BaseStreamController) {
             } else {
               logger["logger"].log("Loading " + frag.sn + ", cc: " + frag.cc + " of [" + trackDetails.startSN + " ," + trackDetails.endSN + "],track " + trackId + ", currentTime:" + pos + ",bufferEnd:" + bufferEnd.toFixed(3)); // only load if fragment is not loaded or if in audio switch
               // we force a frag loading in audio switch as fragment tracker might not have evicted previous frags in case of quick audio switch
+
+              if (trackDetails.initSegments[frag.initSegment] && !trackDetails.initSegments[frag.initSegment].data) {
+                frag = trackDetails.initSegments[frag.initSegment].fragment;
+              }
 
               this.fragCurrent = frag;
 
@@ -15193,7 +15271,8 @@ function (_BaseStreamController) {
       newDetails.PTSKnown = false;
     }
 
-    track.details = newDetails; // compute start position
+    track.details = newDetails;
+    this.trackLastLoaded = trackId; // compute start position
 
     if (!this.startFragRequested) {
       // compute start position if set to -1. use it straight away if value is defined
@@ -15205,7 +15284,12 @@ function (_BaseStreamController) {
           logger["logger"].log("start time offset found in playlist, adjust startPosition to " + startTimeOffset);
           this.startPosition = startTimeOffset;
         } else {
-          this.startPosition = 0;
+          if (newDetails.live) {
+            this.startPosition = this.computeLivePosition(sliding, newDetails);
+            logger["logger"].log("compute startPosition for audio-track to " + this.startPosition);
+          } else {
+            this.startPosition = 0;
+          }
         }
       }
 
@@ -15245,7 +15329,7 @@ function (_BaseStreamController) {
       if (sn === 'initSegment') {
         this.state = State.IDLE;
         stats.tparsed = stats.tbuffered = audio_stream_controller_performance.now();
-        details.initSegment.data = data.payload;
+        details.initSegments[data.frag.relurl].data = data.payload;
         this.hls.trigger(events["default"].FRAG_BUFFERED, {
           stats: stats,
           frag: fragCurrent,
@@ -15264,9 +15348,9 @@ function (_BaseStreamController) {
 
 
         var initPTS = this.initPTS[cc];
-        var initSegmentData = details.initSegment ? details.initSegment.data : [];
+        var initSegmentData = details.initSegments[fragCurrent.initSegment] ? details.initSegments[fragCurrent.initSegment].data : [];
 
-        if (details.initSegment || initPTS !== undefined) {
+        if (details.initSegments[fragCurrent.initSegment] || initPTS !== undefined) {
           this.pendingBuffering = true;
           logger["logger"].log("Demuxing " + sn + " of [" + details.startSN + " ," + details.endSN + "],track " + trackId); // time Offset is accurate if level PTS is known, or if playlist is not sliding (not live)
 
@@ -16421,15 +16505,16 @@ VTTParser.prototype = {
 };
 
 /* harmony default export */ var vttparser = (VTTParser);
-// CONCATENATED MODULE: ./src/utils/cues.js
+// CONCATENATED MODULE: ./src/utils/cues.ts
 
 function newCue(track, startTime, endTime, captionScreen) {
-  var row;
+  var row; // the type data states this is VTTCue, but it can potentially be a TextTrackCue on old browsers
+
   var cue;
   var indenting;
   var indent;
   var text;
-  var VTTCue = window.VTTCue || window.TextTrackCue;
+  var VTTCue = window.VTTCue || TextTrackCue;
 
   for (var r = 0; r < captionScreen.rows.length; r++) {
     row = captionScreen.rows[r];
@@ -16477,7 +16562,7 @@ function newCue(track, startTime, endTime, captionScreen) {
     }
   }
 }
-// CONCATENATED MODULE: ./src/utils/cea-608-parser.js
+// CONCATENATED MODULE: ./src/utils/cea-608-parser.ts
 /**
  *
  * This code was ported from the dash.js project at:
@@ -16517,9 +16602,8 @@ function newCue(track, startTime, endTime, captionScreen) {
  */
 
 /**
- *  Exceptions from regular ASCII. CodePoints are mapped to UTF-16 codes
- */
-
+     *  Exceptions from regular ASCII. CodePoints are mapped to UTF-16 codes
+     */
 var specialCea608CharsCodes = {
   0x2a: 0xe1,
   // lowercase a, acute accent
@@ -16765,13 +16849,42 @@ var rowsHighCh2 = {
   0x1C: 15
 };
 var backgroundColors = ['white', 'green', 'blue', 'cyan', 'red', 'yellow', 'magenta', 'black', 'transparent'];
-var ENABLE_LOGS = false; // true;
+var VerboseFilter;
+/**
+ * Simple logger class to be able to write with time-stamps and filter on level.
+ */
 
-var log = function log() {};
+(function (VerboseFilter) {
+  VerboseFilter[VerboseFilter["ERROR"] = 0] = "ERROR";
+  VerboseFilter[VerboseFilter["TEXT"] = 1] = "TEXT";
+  VerboseFilter[VerboseFilter["WARNING"] = 2] = "WARNING";
+  VerboseFilter[VerboseFilter["INFO"] = 2] = "INFO";
+  VerboseFilter[VerboseFilter["DEBUG"] = 3] = "DEBUG";
+  VerboseFilter[VerboseFilter["DATA"] = 3] = "DATA";
+})(VerboseFilter || (VerboseFilter = {}));
 
-var warn = function warn() {};
+var cea_608_parser_logger = {
+  verboseFilter: {
+    'DATA': 3,
+    'DEBUG': 3,
+    'INFO': 2,
+    'WARNING': 2,
+    'TEXT': 1,
+    'ERROR': 0
+  },
+  time: null,
+  verboseLevel: 0,
+  // Only write errors
+  setTime: function setTime(newTime) {
+    this.time = newTime;
+  },
+  log: function log(severity, msg) {
+    var minLevel = this.verboseFilter[severity];
 
-var cea_608_parser_currentTime = null;
+    if (this.verboseLevel >= minLevel) {// console.log(this.time + ' [' + severity + '] ' + msg);
+    }
+  }
+};
 
 var numArrayToHexArray = function numArrayToHexArray(numArray) {
   var hexArray = [];
@@ -16787,6 +16900,11 @@ var PenState =
 /*#__PURE__*/
 function () {
   function PenState(foreground, underline, italics, background, flash) {
+    this.foreground = void 0;
+    this.underline = void 0;
+    this.italics = void 0;
+    this.background = void 0;
+    this.flash = void 0;
     this.foreground = foreground || 'white';
     this.underline = underline || false;
     this.italics = italics || false;
@@ -16848,6 +16966,8 @@ var StyledUnicodeChar =
 /*#__PURE__*/
 function () {
   function StyledUnicodeChar(uchar, foreground, underline, italics, background, flash) {
+    this.uchar = void 0;
+    this.penState = void 0;
     this.uchar = uchar || ' '; // unicode character
 
     this.penState = new PenState(foreground, underline, italics, background, flash);
@@ -16890,10 +17010,14 @@ function () {
  */
 
 
-var cea_608_parser_Row =
+var Row =
 /*#__PURE__*/
 function () {
   function Row() {
+    this.chars = void 0;
+    this.pos = void 0;
+    this.currPenState = void 0;
+    this.cueStartTime = void 0;
     this.chars = [];
 
     for (var i = 0; i < NR_COLS; i++) {
@@ -16948,10 +17072,10 @@ function () {
     }
 
     if (this.pos < 0) {
-      logger["logger"].error('CEA608 parsing error: Negative cursor position ' + this.pos);
+      cea_608_parser_logger.log('ERROR', 'Negative cursor position ' + this.pos);
       this.pos = 0;
     } else if (this.pos > NR_COLS) {
-      logger["logger"].error('CEA608 parsing error: Too large cursor position ' + this.pos);
+      cea_608_parser_logger.log('ERROR', 'Too large cursor position ' + this.pos);
       this.pos = NR_COLS;
     }
   }
@@ -16990,7 +17114,7 @@ function () {
     var char = getCharForByte(byte);
 
     if (this.pos >= NR_COLS) {
-      logger["logger"].error('CEA608 parsing error: Cannot insert ' + byte.toString(16) + ' (' + char + ') at position ' + this.pos + '. Skipping it!');
+      cea_608_parser_logger.log('ERROR', 'Cannot insert ' + byte.toString(16) + ' (' + char + ') at position ' + this.pos + '. Skipping it!');
       return;
     }
 
@@ -17050,15 +17174,18 @@ function () {
  * @constructor
 */
 
-
 var CaptionScreen =
 /*#__PURE__*/
 function () {
   function CaptionScreen() {
+    this.rows = void 0;
+    this.currRow = void 0;
+    this.nrRollUpRows = void 0;
+    this.lastOutputScreen = void 0;
     this.rows = [];
 
     for (var i = 0; i < NR_ROWS; i++) {
-      this.rows.push(new cea_608_parser_Row());
+      this.rows.push(new Row());
     } // Note that we use zero-based numbering (0-14)
 
 
@@ -17139,13 +17266,13 @@ function () {
   };
 
   _proto4.setCursor = function setCursor(absPos) {
-    log('CEA Parser: setCursor: ' + absPos);
+    cea_608_parser_logger.log('INFO', 'setCursor: ' + absPos);
     var row = this.rows[this.currRow];
     row.setCursor(absPos);
   };
 
   _proto4.setPAC = function setPAC(pacData) {
-    log('CEA Parser: pacData = ' + JSON.stringify(pacData));
+    cea_608_parser_logger.log('INFO', 'pacData = ' + JSON.stringify(pacData));
     var newRow = pacData.row - 1;
 
     if (this.nrRollUpRows && newRow < this.nrRollUpRows - 1) {
@@ -17169,7 +17296,7 @@ function () {
       if (lastOutputScreen) {
         var prevLineTime = lastOutputScreen.rows[topRowIndex].cueStartTime;
 
-        if (prevLineTime && prevLineTime < cea_608_parser_currentTime) {
+        if (prevLineTime && cea_608_parser_logger.time && prevLineTime < cea_608_parser_logger.time) {
           for (var _i = 0; _i < this.nrRollUpRows; _i++) {
             this.rows[newRow - this.nrRollUpRows + _i + 1].copy(lastOutputScreen.rows[topRowIndex + _i]);
           }
@@ -17202,7 +17329,7 @@ function () {
   ;
 
   _proto4.setBkgData = function setBkgData(bkgData) {
-    log('CEA Parser: bkgData = ' + JSON.stringify(bkgData));
+    cea_608_parser_logger.log('INFO', 'bkgData = ' + JSON.stringify(bkgData));
     this.backSpace();
     this.setPen(bkgData);
     this.insertChar(0x20); // Space
@@ -17214,16 +17341,16 @@ function () {
 
   _proto4.rollUp = function rollUp() {
     if (this.nrRollUpRows === null) {
-      log('CEA Parser: roll_up but nrRollUpRows not set yet');
+      cea_608_parser_logger.log('DEBUG', 'roll_up but nrRollUpRows not set yet');
       return; // Not properly setup
     }
 
-    log('CEA Parser: ' + this.getDisplayText());
+    cea_608_parser_logger.log('TEXT', this.getDisplayText());
     var topRowIndex = this.currRow + 1 - this.nrRollUpRows;
     var topRow = this.rows.splice(topRowIndex, 1)[0];
     topRow.clear();
     this.rows.splice(this.currRow, 0, topRow);
-    log('CEA Parser: Rolling up'); // log(this.get_display_text())
+    cea_608_parser_logger.log('INFO', 'Rolling up'); // logger.log('TEXT', this.get_display_text())
   }
   /**
     * Get all non-empty rows with as unicode text.
@@ -17268,11 +17395,21 @@ function () {
   return CaptionScreen;
 }(); // var modes = ['MODE_ROLL-UP', 'MODE_POP-ON', 'MODE_PAINT-ON', 'MODE_TEXT'];
 
-
 var Cea608Channel =
 /*#__PURE__*/
 function () {
   function Cea608Channel(channelNumber, outputFilter) {
+    this.chNr = void 0;
+    this.outputFilter = void 0;
+    this.mode = void 0;
+    this.verbose = void 0;
+    this.displayedMemory = void 0;
+    this.nonDisplayedMemory = void 0;
+    this.lastOutputScreen = void 0;
+    this.currRollUpRow = void 0;
+    this.writeScreen = void 0;
+    this.cueStartTime = void 0;
+    this.lastCueEndTime = void 0;
     this.chNr = channelNumber;
     this.outputFilter = outputFilter;
     this.mode = null;
@@ -17297,7 +17434,6 @@ function () {
     this.writeScreen = this.displayedMemory;
     this.mode = null;
     this.cueStartTime = null;
-    this.lastCueEndTime = null;
   };
 
   _proto5.getHandler = function getHandler() {
@@ -17322,7 +17458,7 @@ function () {
     }
 
     this.mode = newMode;
-    log('CEA Parser: MODE=' + newMode);
+    cea_608_parser_logger.log('INFO', 'MODE=' + newMode);
 
     if (this.mode === 'MODE_POP-ON') {
       this.writeScreen = this.nonDisplayedMemory;
@@ -17345,23 +17481,23 @@ function () {
     }
 
     var screen = this.writeScreen === this.displayedMemory ? 'DISP' : 'NON_DISP';
-    log('CEA Parser: ' + screen + ': ' + this.writeScreen.getDisplayText(true));
+    cea_608_parser_logger.log('INFO', screen + ': ' + this.writeScreen.getDisplayText(true));
 
     if (this.mode === 'MODE_PAINT-ON' || this.mode === 'MODE_ROLL-UP') {
-      log('CEA Parser: DISPLAYED: ' + this.displayedMemory.getDisplayText(true));
+      cea_608_parser_logger.log('TEXT', 'DISPLAYED: ' + this.displayedMemory.getDisplayText(true));
       this.outputDataUpdate();
     }
   };
 
   _proto5.ccRCL = function ccRCL() {
     // Resume Caption Loading (switch mode to Pop On)
-    log('CEA Parser: RCL - Resume Caption Loading');
+    cea_608_parser_logger.log('INFO', 'RCL - Resume Caption Loading');
     this.setMode('MODE_POP-ON');
   };
 
   _proto5.ccBS = function ccBS() {
     // BackSpace
-    log('CEA Parser: BS - BackSpace');
+    cea_608_parser_logger.log('INFO', 'BS - BackSpace');
 
     if (this.mode === 'MODE_TEXT') {
       return;
@@ -17382,14 +17518,14 @@ function () {
 
   _proto5.ccDER = function ccDER() {
     // Delete to End of Row
-    log('CEA Parser: DER- Delete to End of Row');
+    cea_608_parser_logger.log('INFO', 'DER- Delete to End of Row');
     this.writeScreen.clearToEndOfRow();
     this.outputDataUpdate();
   };
 
   _proto5.ccRU = function ccRU(nrRows) {
     // Roll-Up Captions-2,3,or 4 Rows
-    log('CEA Parser: RU(' + nrRows + ') - Roll Up');
+    cea_608_parser_logger.log('INFO', 'RU(' + nrRows + ') - Roll Up');
     this.writeScreen = this.displayedMemory;
     this.setMode('MODE_ROLL-UP');
     this.writeScreen.setRollUpRows(nrRows);
@@ -17397,7 +17533,7 @@ function () {
 
   _proto5.ccFON = function ccFON() {
     // Flash On
-    log('CEA Parser: FON - Flash On');
+    cea_608_parser_logger.log('INFO', 'FON - Flash On');
     this.writeScreen.setPen({
       flash: true
     });
@@ -17405,52 +17541,52 @@ function () {
 
   _proto5.ccRDC = function ccRDC() {
     // Resume Direct Captioning (switch mode to PaintOn)
-    log('CEA Parser: RDC - Resume Direct Captioning');
+    cea_608_parser_logger.log('INFO', 'RDC - Resume Direct Captioning');
     this.setMode('MODE_PAINT-ON');
   };
 
   _proto5.ccTR = function ccTR() {
     // Text Restart in text mode (not supported, however)
-    log('CEA Parser: TR');
+    cea_608_parser_logger.log('INFO', 'TR');
     this.setMode('MODE_TEXT');
   };
 
   _proto5.ccRTD = function ccRTD() {
     // Resume Text Display in Text mode (not supported, however)
-    log('CEA Parser: RTD');
+    cea_608_parser_logger.log('INFO', 'RTD');
     this.setMode('MODE_TEXT');
   };
 
   _proto5.ccEDM = function ccEDM() {
     // Erase Displayed Memory
-    log('CEA Parser: EDM - Erase Displayed Memory');
+    cea_608_parser_logger.log('INFO', 'EDM - Erase Displayed Memory');
     this.displayedMemory.reset();
     this.outputDataUpdate(true);
   };
 
   _proto5.ccCR = function ccCR() {
     // Carriage Return
-    log('CEA Parser: CR - Carriage Return');
+    cea_608_parser_logger.log('INFO', 'CR - Carriage Return');
     this.writeScreen.rollUp();
     this.outputDataUpdate(true);
   };
 
   _proto5.ccENM = function ccENM() {
     // Erase Non-Displayed Memory
-    log('CEA Parser: ENM - Erase Non-displayed Memory');
+    cea_608_parser_logger.log('INFO', 'ENM - Erase Non-displayed Memory');
     this.nonDisplayedMemory.reset();
   };
 
   _proto5.ccEOC = function ccEOC() {
     // End of Caption (Flip Memories)
-    log('CEA Parser: EOC - End Of Caption');
+    cea_608_parser_logger.log('INFO', 'EOC - End Of Caption');
 
     if (this.mode === 'MODE_POP-ON') {
       var tmp = this.displayedMemory;
       this.displayedMemory = this.nonDisplayedMemory;
       this.nonDisplayedMemory = tmp;
       this.writeScreen = this.nonDisplayedMemory;
-      log('CEA Parser: DISP: ' + this.displayedMemory.getDisplayText());
+      cea_608_parser_logger.log('TEXT', 'DISP: ' + this.displayedMemory.getDisplayText());
     }
 
     this.outputDataUpdate(true);
@@ -17458,7 +17594,7 @@ function () {
 
   _proto5.ccTO = function ccTO(nrCols) {
     // Tab Offset 1,2, or 3 columns
-    log('CEA Parser: TO(' + nrCols + ') - Tab Offset');
+    cea_608_parser_logger.log('INFO', 'TO(' + nrCols + ') - Tab Offset');
     this.writeScreen.moveCursor(nrCols);
   };
 
@@ -17478,7 +17614,7 @@ function () {
       styles.foreground = 'white';
     }
 
-    log('CEA Parser: MIDROW: ' + JSON.stringify(styles));
+    cea_608_parser_logger.log('INFO', 'MIDROW: ' + JSON.stringify(styles));
     this.writeScreen.setPen(styles);
   };
 
@@ -17487,7 +17623,7 @@ function () {
       dispatch = false;
     }
 
-    var t = cea_608_parser_currentTime;
+    var t = cea_608_parser_logger.time;
 
     if (t === null) {
       return;
@@ -17499,12 +17635,10 @@ function () {
         this.cueStartTime = t;
       } else {
         if (!this.displayedMemory.equals(this.lastOutputScreen)) {
-          if (this.outputFilter.newCue) {
-            this.outputFilter.newCue(this.cueStartTime, t, this.lastOutputScreen);
+          this.outputFilter.newCue(this.cueStartTime, t, this.lastOutputScreen);
 
-            if (dispatch === true && this.outputFilter.dispatchCue) {
-              this.outputFilter.dispatchCue(this.cueStartTime);
-            }
+          if (dispatch === true && this.outputFilter.dispatchCue) {
+            this.outputFilter.dispatchCue();
           }
 
           this.cueStartTime = this.displayedMemory.isEmpty() ? null : t;
@@ -17530,10 +17664,18 @@ function () {
   return Cea608Channel;
 }();
 
-var cea_608_parser_Cea608Parser =
+var Cea608Parser =
 /*#__PURE__*/
 function () {
   function Cea608Parser(field, out1, out2) {
+    this.field = void 0;
+    this.outputs = void 0;
+    this.channels = void 0;
+    this.currChNr = void 0;
+    this.lastCmdA = void 0;
+    this.lastCmdB = void 0;
+    this.lastTime = void 0;
+    this.dataCounters = void 0;
     this.field = field || 1;
     this.outputs = [out1, out2];
     this.channels = [new Cea608Channel(1, out1), new Cea608Channel(2, out2)];
@@ -17543,8 +17685,6 @@ function () {
 
     this.lastCmdB = null; // Second byte of last command
 
-    this.bufferedData = [];
-    this.startTime = null;
     this.lastTime = null;
     this.dataCounters = {
       'padding': 0,
@@ -17552,11 +17692,6 @@ function () {
       'cmd': 0,
       'other': 0
     };
-
-    if (ENABLE_LOGS) {
-      log = logger["logger"].log;
-      warn = logger["logger"].warn;
-    }
   }
 
   var _proto6 = Cea608Parser.prototype;
@@ -17579,24 +17714,17 @@ function () {
         b,
         charsFound = false;
     this.lastTime = t;
-    cea_608_parser_currentTime = t;
+    cea_608_parser_logger.setTime(t);
 
     for (var i = 0; i < byteList.length; i += 2) {
       a = byteList[i] & 0x7f;
       b = byteList[i + 1] & 0x7f;
 
-      if (a >= 0x10 && a <= 0x1f && a === this.lastCmdA && b === this.lastCmdB) {
-        this.lastCmdA = null;
-        this.lastCmdB = null;
-        log('CEA Parser: Repeated command (' + numArrayToHexArray([a, b]) + ') is dropped');
-        continue; // Repeated commands are dropped (once)
-      }
-
       if (a === 0 && b === 0) {
         this.dataCounters.padding += 2;
         continue;
       } else {
-        log('CEA Parser: [' + numArrayToHexArray([byteList[i], byteList[i + 1]]) + '] -> (' + numArrayToHexArray([a, b]) + ')');
+        cea_608_parser_logger.log('DATA', '[' + numArrayToHexArray([byteList[i], byteList[i + 1]]) + '] -> (' + numArrayToHexArray([a, b]) + ')');
       }
 
       cmdFound = this.parseCmd(a, b);
@@ -17621,7 +17749,7 @@ function () {
             var channel = this.channels[this.currChNr - 1];
             channel.insertChars(charsFound);
           } else {
-            warn('No channel found yet. TEXT-MODE?');
+            cea_608_parser_logger.log('WARNING', 'No channel found yet. TEXT-MODE?');
           }
         }
       }
@@ -17632,7 +17760,7 @@ function () {
         this.dataCounters.char += 2;
       } else {
         this.dataCounters.other += 2;
-        warn('WARNING', 'Couldn\'t parse cleaned data ' + numArrayToHexArray([a, b]) + ' orig: ' + numArrayToHexArray([byteList[i], byteList[i + 1]]));
+        cea_608_parser_logger.log('WARNING', 'Couldn\'t parse cleaned data ' + numArrayToHexArray([a, b]) + ' orig: ' + numArrayToHexArray([byteList[i], byteList[i + 1]]));
       }
     }
   }
@@ -17649,6 +17777,14 @@ function () {
 
     if (!(cond1 || cond2)) {
       return false;
+    }
+
+    if (a === this.lastCmdA && b === this.lastCmdB) {
+      this.lastCmdA = null;
+      this.lastCmdB = null; // Repeated commands are dropped (once)
+
+      cea_608_parser_logger.log('DEBUG', 'Repeated command (' + numArrayToHexArray([a, b]) + ') is dropped');
+      return true;
     }
 
     if (a === 0x14 || a === 0x15 || a === 0x17) {
@@ -17721,7 +17857,7 @@ function () {
       }
 
       if (chNr !== this.currChNr) {
-        logger["logger"].error('CEA608 parsing error: Mismatch channel in midrow parsing');
+        cea_608_parser_logger.log('ERROR', 'Mismatch channel in midrow parsing');
         return false;
       }
 
@@ -17729,7 +17865,7 @@ function () {
 
       channel.insertChars([0x20]);
       channel.ccMIDROW(b);
-      log('CEA Parser: MIDROW (' + numArrayToHexArray([a, b]) + ')');
+      cea_608_parser_logger.log('DEBUG', 'MIDROW (' + numArrayToHexArray([a, b]) + ')');
       this.lastCmdA = a;
       this.lastCmdB = b;
       return true;
@@ -17751,6 +17887,12 @@ function () {
 
     if (!(case1 || case2)) {
       return false;
+    }
+
+    if (a === this.lastCmdA && b === this.lastCmdB) {
+      this.lastCmdA = null;
+      this.lastCmdB = null;
+      return true; // Repeated commands are dropped (once)
     }
 
     chNr = a <= 0x17 ? 1 : 2;
@@ -17836,7 +17978,7 @@ function () {
         oneCode = b + 0x90;
       }
 
-      log('CEA Parser: Special char \'' + getCharForByte(oneCode) + '\' in channel ' + channelNr);
+      cea_608_parser_logger.log('INFO', 'Special char \'' + getCharForByte(oneCode) + '\' in channel ' + channelNr);
       charCodes = [oneCode];
       this.lastCmdA = a;
       this.lastCmdB = b;
@@ -17848,14 +17990,14 @@ function () {
 
     if (charCodes) {
       var hexCodes = numArrayToHexArray(charCodes);
-      log('CEA Parser: Char codes =  ' + hexCodes.join(','));
+      cea_608_parser_logger.log('DEBUG', 'Char codes =  ' + hexCodes.join(','));
     }
 
     return charCodes;
   }
   /**
     * Parse extended background attributes as well as new foreground color black.
-    * @returns{Boolean} Tells if background attributes are found
+    * @returns {Boolean} Tells if background attributes are found
     */
   ;
 
@@ -17925,12 +18067,18 @@ function () {
   return Cea608Parser;
 }();
 
-/* harmony default export */ var cea_608_parser = (cea_608_parser_Cea608Parser);
-// CONCATENATED MODULE: ./src/utils/output-filter.js
+/* harmony default export */ var cea_608_parser = (Cea608Parser);
+// CONCATENATED MODULE: ./src/utils/output-filter.ts
 var OutputFilter =
 /*#__PURE__*/
 function () {
+  // TODO(typescript-timelineController)
   function OutputFilter(timelineController, trackName) {
+    this.timelineController = void 0;
+    this.trackName = void 0;
+    this.startTime = void 0;
+    this.endTime = void 0;
+    this.screen = void 0;
     this.timelineController = timelineController;
     this.trackName = trackName;
     this.startTime = null;
@@ -19261,22 +19409,6 @@ function (_EventHandler) {
     _this._requestMediaKeySystemAccess = void 0;
     _this._getEMEInitializationData = void 0;
     _this._getEMELicense = void 0;
-
-    _this._onKeySessionMessage = function (event, levelOrAudioTrack, resolve, reject) {
-      logger["logger"].log('Received key session message, requesting license');
-
-      _this.getEMELicense(levelOrAudioTrack, event).then(function (license) {
-        logger["logger"].log('Received license data, updating key-session');
-        return event.target.update(license).then(function () {
-          resolve();
-        }).catch(function (err) {
-          reject(errors["ErrorDetails"].KEY_SYSTEM_LICENSE_UPDATE_FAILED);
-        });
-      }).catch(function (err) {
-        reject(errors["ErrorDetails"].KEY_SYSTEM_LICENSE_REQUEST_FAILED);
-      });
-    };
-
     _this._emeEnabled = hls.config.emeEnabled;
     _this._emeInitDataInFrag = hls.config.emeInitDataInFrag;
     _this._requestMediaKeySystemAccess = hls.config.requestMediaKeySystemAccessFunc;
@@ -19285,27 +19417,17 @@ function (_EventHandler) {
     return _this;
   }
   /**
-   * Handles key session messages and requests licenses
+   * Creates requests for licenses
    * @private
-   * @param {MediaKeyMessageEvent} event The event resulting from generating a license request on a MediaKeySession
+   * @param {MediaKeySession} session Media Keys Session created on the Media Keys object https://developer.mozilla.org/en-US/docs/Web/API/MediaKeySession
    * @param {Level | AudioTrack} levelOrAudioTrack Either a level or audio track mapped from manifestParsed data, used by client should different licenses be
    * requred for different levels or audio tracks
-   * @param {Promise.resolve} resolve Resolve method to be called on successful license update on MediaKeySession
-   * @param {Promise.resolve} reject Reject method to be called on unsuccessful license update on MediaKeySession
-   * @param {Event<MediaKeyMessageEvent>} event Message event created by license request generation
+   * @returns {Promise<any>} Promise resolved or rejected by updating MediaKeySession with license
    */
 
 
   var _proto = EMEController.prototype;
 
-  /**
-   * Creates and handles the generation of requests for licenses
-   * @private
-   * @param {MediaKeys} session Media Keys Session created on the Media Keys object https://developer.mozilla.org/en-US/docs/Web/API/MediaKeySession
-   * @param {Level | AudioTrack} levelOrAudioTrack Either a level or audio track mapped from manifestParsed data, used by client should different licenses be
-   * requred for different levels or audio tracks
-   * @returns {Promise<any>} Promise resolved or rejected by _onKeySessionMessage
-   */
   _proto._onMediaKeySessionCreated = function _onMediaKeySessionCreated(session, levelOrAudioTrack) {
     var _this2 = this;
 
@@ -19313,7 +19435,19 @@ function (_EventHandler) {
     return this.getEMEInitializationData(levelOrAudioTrack, this.initDataType, this.initData).then(function (initDataInfo) {
       var messagePromise = new Promise(function (resolve, reject) {
         session.addEventListener('message', function (event) {
-          _this2._onKeySessionMessage(event, levelOrAudioTrack, resolve, reject);
+          logger["logger"].log('Received key session message, requesting license');
+
+          _this2.getEMELicense(levelOrAudioTrack, event).catch(function () {
+            reject(errors["ErrorDetails"].KEY_SYSTEM_LICENSE_REQUEST_FAILED);
+          }).then(function (license) {
+            logger["logger"].log('Received license data, updating key session');
+            return event.target.update(license).then(function () {
+              logger["logger"].log('Key session updated with license');
+              resolve();
+            }).catch(function () {
+              reject(errors["ErrorDetails"].KEY_SYSTEM_LICENSE_UPDATE_FAILED);
+            });
+          });
         });
       });
       return session.generateRequest(initDataInfo.initDataType, initDataInfo.initData).catch(function (err) {
@@ -19459,13 +19593,23 @@ function (_EventHandler) {
       });
 
       var keySessionRequests = levelRequests.concat(audioRequests);
-      return Promise.all(keySessionRequests);
+      return keySessionRequests.reduce(function (prevKeySessionRequest, currentKeySessionRequest) {
+        return prevKeySessionRequest.then(function (prevKeySessionResponses) {
+          return currentKeySessionRequest.then(function (keySessionResponse) {
+            return [].concat(prevKeySessionResponses, [keySessionResponse]);
+          });
+        });
+      }, Promise.resolve([]));
     }).then(function (keySessionResponses) {
       logger["logger"].log('Created media key sessions');
       var licenseRequests = keySessionResponses.map(function (keySessionResponse) {
         return _this3._onMediaKeySessionCreated(keySessionResponse.keySession, keySessionResponse.levelOrAudioTrack);
       });
-      return Promise.all(licenseRequests);
+      return licenseRequests.reduce(function (prevLicenseRequest, currentLicenseRequest) {
+        return prevLicenseRequest.then(function () {
+          return currentLicenseRequest;
+        });
+      }, Promise.resolve());
     }).then(function () {
       logger["logger"].log('EME sucessfully configured');
 
@@ -19609,9 +19753,9 @@ function (_EventHandler) {
 
 /* harmony default export */ var eme_controller = (eme_controller_EMEController);
 // CONCATENATED MODULE: ./src/config.ts
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
+function config_objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { config_defineProperty(target, key, source[key]); }); } return target; }
 
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+function config_defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 /**
  * HLS config
@@ -19629,7 +19773,10 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 
 
-var hlsDefaultConfig = _objectSpread({
+// If possible, keep hlsDefaultConfig shallow
+// It is cloned whenever a new Hls instance is created, by keeping the config
+// shallow the properties are cloned, and we don't end up manipulating the default
+var hlsDefaultConfig = config_objectSpread({
   autoStartLoad: true,
   // used by stream-controller
   startPosition: -1,
@@ -19791,8 +19938,12 @@ function timelineConfig() {
 
   };
 }
-// CONCATENATED MODULE: ./src/hls.js
+// CONCATENATED MODULE: ./src/hls.ts
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return hls_Hls; });
+function hls_objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { hls_defineProperty(target, key, source[key]); }); } return target; }
+
+function hls_defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function hls_assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
 
 function hls_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -19898,35 +20049,48 @@ function (_Observer) {
 
   }]);
 
-  function Hls(config) {
+  function Hls(userConfig) {
     var _this;
 
-    if (config === void 0) {
-      config = {};
+    if (userConfig === void 0) {
+      userConfig = {};
     }
 
     _this = _Observer.call(this) || this;
+    _this.config = void 0;
+    _this._autoLevelCapping = void 0;
+    _this.abrController = void 0;
+    _this.capLevelController = void 0;
+    _this.levelController = void 0;
+    _this.streamController = void 0;
+    _this.networkControllers = void 0;
+    _this.audioTrackController = void 0;
+    _this.subtitleTrackController = void 0;
+    _this.emeController = void 0;
+    _this.coreComponents = void 0;
+    _this.media = null;
+    _this.url = null;
     var defaultConfig = Hls.DefaultConfig;
 
-    if ((config.liveSyncDurationCount || config.liveMaxLatencyDurationCount) && (config.liveSyncDuration || config.liveMaxLatencyDuration)) {
+    if ((userConfig.liveSyncDurationCount || userConfig.liveMaxLatencyDurationCount) && (userConfig.liveSyncDuration || userConfig.liveMaxLatencyDuration)) {
       throw new Error('Illegal hls.js config: don\'t mix up liveSyncDurationCount/liveMaxLatencyDurationCount and liveSyncDuration/liveMaxLatencyDuration');
-    }
+    } // Shallow clone
 
-    for (var prop in defaultConfig) {
-      if (prop in config) continue;
-      config[prop] = defaultConfig[prop];
-    }
+
+    _this.config = hls_objectSpread({}, defaultConfig, userConfig);
+
+    var _assertThisInitialize = hls_assertThisInitialized(_this),
+        config = _assertThisInitialize.config;
 
     if (config.liveMaxLatencyDurationCount !== void 0 && config.liveMaxLatencyDurationCount <= config.liveSyncDurationCount) {
       throw new Error('Illegal hls.js config: "liveMaxLatencyDurationCount" must be gt "liveSyncDurationCount"');
     }
 
-    if (config.liveMaxLatencyDuration !== void 0 && (config.liveMaxLatencyDuration <= config.liveSyncDuration || config.liveSyncDuration === void 0)) {
+    if (config.liveMaxLatencyDuration !== void 0 && (config.liveSyncDuration === void 0 || config.liveMaxLatencyDuration <= config.liveSyncDuration)) {
       throw new Error('Illegal hls.js config: "liveMaxLatencyDuration" must be gt "liveSyncDuration"');
     }
 
     Object(logger["enableLogs"])(config.debug);
-    _this.config = config;
     _this._autoLevelCapping = -1; // core controllers and network loaders
 
     /**
@@ -19958,13 +20122,26 @@ function (_Observer) {
      */
 
     var streamController = _this.streamController = new stream_controller(hls_assertThisInitialized(_this), fragmentTracker);
-    var networkControllers = [levelController, streamController]; // optional audio stream controller
+    var networkControllers = [levelController, streamController]; // optional audio track controller
+
+    var Controller = config.audioTrackController;
+
+    if (Controller) {
+      var audioTrackController = new Controller(hls_assertThisInitialized(_this));
+      /**
+       * @member {AudioTrackController} audioTrackController
+       */
+
+      _this.audioTrackController = audioTrackController;
+      networkControllers.push(audioTrackController);
+    } // optional audio stream controller
 
     /**
      * @var {ICoreComponent | Controller}
      */
 
-    var Controller = config.audioStreamController;
+
+    Controller = config.audioStreamController;
 
     if (Controller) {
       networkControllers.push(new Controller(hls_assertThisInitialized(_this), fragmentTracker));
@@ -19979,19 +20156,7 @@ function (_Observer) {
      * @var {ICoreComponent[]}
      */
 
-    var coreComponents = [playListLoader, fragmentLoader, keyLoader, abrController, bufferController, capLevelController, fpsController, id3TrackController, fragmentTracker]; // optional audio track and subtitle controller
-
-    Controller = config.audioTrackController;
-
-    if (Controller) {
-      var audioTrackController = new Controller(hls_assertThisInitialized(_this));
-      /**
-       * @member {AudioTrackController} audioTrackController
-       */
-
-      _this.audioTrackController = audioTrackController;
-      coreComponents.push(audioTrackController);
-    }
+    var coreComponents = [playListLoader, fragmentLoader, keyLoader, abrController, bufferController, capLevelController, fpsController, id3TrackController, fragmentTracker]; // optional subtitle controller
 
     Controller = config.subtitleTrackController;
 
@@ -20146,11 +20311,15 @@ function (_Observer) {
     logger["logger"].log('recoverMediaError');
     var media = this.media;
     this.detachMedia();
-    this.attachMedia(media);
+
+    if (media) {
+      this.attachMedia(media);
+    }
   }
   /**
    * @type {QualityLevel[]}
    */
+  // todo(typescript-levelController)
   ;
 
   hls_createClass(Hls, [{
@@ -20284,14 +20453,13 @@ function (_Observer) {
      */
     ,
     set: function set(newLevel) {
-      logger["logger"].log("set startLevel:" + newLevel);
-      var hls = this; // if not in automatic start level detection, ensure startLevel is greater than minAutoLevel
+      logger["logger"].log("set startLevel:" + newLevel); // if not in automatic start level detection, ensure startLevel is greater than minAutoLevel
 
       if (newLevel !== -1) {
-        newLevel = Math.max(newLevel, hls.minAutoLevel);
+        newLevel = Math.max(newLevel, this.minAutoLevel);
       }
 
-      hls.levelController.startLevel = newLevel;
+      this.levelController.startLevel = newLevel;
     }
     /**
      * set  dynamically set capLevelToPlayerSize against (`CapLevelController`)
@@ -20374,9 +20542,8 @@ function (_Observer) {
   }, {
     key: "minAutoLevel",
     get: function get() {
-      var hls = this;
-      var levels = hls.levels;
-      var minAutoBitrate = hls.config.minAutoBitrate;
+      var levels = this.levels,
+          minAutoBitrate = this.config.minAutoBitrate;
       var len = levels ? levels.length : 0;
 
       for (var i = 0; i < len; i++) {
@@ -20397,9 +20564,8 @@ function (_Observer) {
   }, {
     key: "maxAutoLevel",
     get: function get() {
-      var hls = this;
-      var levels = hls.levels;
-      var autoLevelCapping = hls.autoLevelCapping;
+      var levels = this.levels,
+          autoLevelCapping = this.autoLevelCapping;
       var maxAutoLevel;
 
       if (autoLevelCapping === -1 && levels && levels.length) {
@@ -20418,9 +20584,8 @@ function (_Observer) {
   }, {
     key: "nextAutoLevel",
     get: function get() {
-      var hls = this; // ensure next auto level is between  min and max auto level
-
-      return Math.min(Math.max(hls.abrController.nextAutoLevel, hls.minAutoLevel), hls.maxAutoLevel);
+      // ensure next auto level is between  min and max auto level
+      return Math.min(Math.max(this.abrController.nextAutoLevel, this.minAutoLevel), this.maxAutoLevel);
     }
     /**
      * this setter is used to force next auto level.
@@ -20432,12 +20597,12 @@ function (_Observer) {
      */
     ,
     set: function set(nextLevel) {
-      var hls = this;
-      hls.abrController.nextAutoLevel = Math.max(hls.minAutoLevel, nextLevel);
+      this.abrController.nextAutoLevel = Math.max(this.minAutoLevel, nextLevel);
     }
     /**
      * @type {AudioTrack[]}
      */
+    // todo(typescript-audioTrackController)
 
   }, {
     key: "audioTracks",
@@ -20481,6 +20646,7 @@ function (_Observer) {
      * get alternate subtitle tracks list from playlist
      * @type {SubtitleTrack[]}
      */
+    // todo(typescript-subtitleTrackController)
 
   }, {
     key: "subtitleTracks",
@@ -20501,7 +20667,7 @@ function (_Observer) {
     }
     /**
      * select an subtitle track, based on its index in subtitle track lists
-     * @type{number}
+     * @type {number}
      */
     ,
     set: function set(subtitleTrackId) {
@@ -20538,6 +20704,7 @@ function (_Observer) {
   return Hls;
 }(Observer);
 
+hls_Hls.defaultConfig = void 0;
 
 
 /***/ }),

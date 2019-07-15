@@ -42,6 +42,10 @@ export default class Fragment {
   // _decryptdata will set the IV for this segment based on the segment number in the fragment
   public levelkey?: LevelKey;
 
+  // initSegment is the relurl of the initsegment associated with the fragment which can be found
+  // on level details
+  public initSegment?: string;
+
   // setByteRange converts a EXT-X-BYTERANGE attribute into a two element array
   setByteRange (value: string, previousFrag?: Fragment) {
     const params = value.split('@', 2);
@@ -170,7 +174,7 @@ export default class Fragment {
    * @returns {LevelKey} - an object to be applied as a fragment's decryptdata
    */
   setDecryptDataFromLevelKey (levelkey: LevelKey, segmentNumber: number): LevelKey {
-    let decryptdata = levelkey;
+    let decryptdata;
 
     if (levelkey && levelkey.method && levelkey.uri && !levelkey.iv) {
       decryptdata = new LevelKey(levelkey.baseuri, levelkey.reluri);
@@ -178,6 +182,6 @@ export default class Fragment {
       decryptdata.iv = this.createInitializationVector(segmentNumber);
     }
 
-    return decryptdata;
+    return decryptdata || null;
   }
 }

@@ -92,7 +92,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /******/
 /******/
 /******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(__webpack_require__.s = "./src/hls.js");
+/******/ 	return __webpack_require__(__webpack_require__.s = "./src/hls.ts");
 /******/ })
 /************************************************************************/
 /******/ ({
@@ -835,13 +835,13 @@ module.exports = function (moduleId, options) {
   !*** ./src/demux/demuxer-inline.js + 15 modules ***!
   \**************************************************/
 /*! exports provided: default */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/demux/id3.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/demux/mp4demuxer.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/errors.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/events.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/polyfills/number-isFinite.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/get-self-scope.js because of ./src/hls.js */
-/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/logger.js because of ./src/hls.js */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/demux/id3.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/demux/mp4demuxer.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/errors.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/events.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/polyfills/number-isFinite.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/get-self-scope.js because of ./src/hls.ts */
+/*! ModuleConcatenation bailout: Cannot concat with ./src/utils/logger.js because of ./src/hls.ts */
 /***/ (function(module, __webpack_exports__, __webpack_require__) {
 
 "use strict";
@@ -6526,9 +6526,9 @@ var HlsEvents = {
 
 /***/ }),
 
-/***/ "./src/hls.js":
+/***/ "./src/hls.ts":
 /*!*********************************!*\
-  !*** ./src/hls.js + 37 modules ***!
+  !*** ./src/hls.ts + 38 modules ***!
   \*********************************/
 /*! exports provided: default */
 /*! ModuleConcatenation bailout: Cannot concat with ./src/demux/demuxer-inline.js because of ./src/demux/demuxer-worker.js */
@@ -6770,6 +6770,7 @@ function () {
     this.duration = void 0;
     this.sn = 0;
     this.levelkey = void 0;
+    this.initSegment = void 0;
   }
 
   var _proto = Fragment.prototype;
@@ -6935,6 +6936,14 @@ function () {
 }();
 
 
+// CONCATENATED MODULE: ./src/loader/init-segment.ts
+var InitSegment = function InitSegment(fragment) {
+  this.fragment = void 0;
+  this.data = null;
+  this.fragment = fragment;
+};
+
+
 // CONCATENATED MODULE: ./src/loader/level.js
 
 
@@ -6950,7 +6959,7 @@ function () {
     this.endCC = 0;
     this.endSN = 0;
     this.fragments = [];
-    this.initSegment = null;
+    this.initSegments = {};
     this.live = true;
     this.needSidxRanges = false;
     this.startCC = 0;
@@ -7077,7 +7086,7 @@ function () {
 }();
 
 /* harmony default export */ var attr_list = (AttrList);
-// CONCATENATED MODULE: ./src/utils/codecs.js
+// CONCATENATED MODULE: ./src/utils/codecs.ts
 // from http://mp4ra.org/codecs.html
 var sampleEntryCodesISO = {
   audio: {
@@ -7149,11 +7158,12 @@ function isCodecType(codec, type) {
 }
 
 function isCodecSupportedInMp4(codec, type) {
-  return window.MediaSource.isTypeSupported((type || 'video') + "/mp4;codecs=\"" + codec + "\"");
+  return MediaSource.isTypeSupported((type || 'video') + "/mp4;codecs=\"" + codec + "\"");
 }
 
 
 // CONCATENATED MODULE: ./src/loader/m3u8-parser.js
+
 
 
 
@@ -7335,6 +7345,7 @@ function () {
     var frag = new fragment_Fragment();
     var result;
     var i;
+    var initSegment = null;
     var firstPdtIndex = null;
     LEVEL_PLAYLIST_REGEX_FAST.lastIndex = 0;
 
@@ -7359,7 +7370,12 @@ function () {
           frag.level = id;
           frag.cc = cc;
           frag.urlId = levelUrlId;
-          frag.baseurl = baseurl; // avoid sliced strings    https://github.com/video-dev/hls.js/issues/939
+          frag.baseurl = baseurl;
+
+          if (initSegment) {
+            frag.initSegment = initSegment.fragment.relurl;
+          } // avoid sliced strings    https://github.com/video-dev/hls.js/issues/939
+
 
           frag.relurl = (' ' + result[3]).slice(1);
           assignProgramDateTime(frag, prevFrag);
@@ -7488,6 +7504,9 @@ function () {
               frag.type = type;
               frag.sn = 'initSegment';
               level.initSegment = frag;
+              frag.cc = cc;
+              initSegment = new InitSegment(frag);
+              level.initSegments[frag.relurl] = initSegment;
               frag = new fragment_Fragment();
               frag.rawProgramDateTime = level.initSegment.rawProgramDateTime;
               break;
@@ -9037,7 +9056,7 @@ function (_EventEmitter) {
 
 var global = Object(get_self_scope["getSelfScope"])(); // safeguard for code that might run both on worker and main thread
 
-var MediaSource = getMediaSource();
+var demuxer_MediaSource = getMediaSource();
 
 var demuxer_Demuxer =
 /*#__PURE__*/
@@ -9067,9 +9086,9 @@ function () {
     observer.on(events["default"].FRAG_PARSING_USERDATA, forwardMessage);
     observer.on(events["default"].INIT_PTS_FOUND, forwardMessage);
     var typeSupported = {
-      mp4: MediaSource.isTypeSupported('video/mp4'),
-      mpeg: MediaSource.isTypeSupported('audio/mpeg'),
-      mp3: MediaSource.isTypeSupported('audio/mp4; codecs="mp3"')
+      mp4: demuxer_MediaSource.isTypeSupported('video/mp4'),
+      mpeg: demuxer_MediaSource.isTypeSupported('audio/mpeg'),
+      mp3: demuxer_MediaSource.isTypeSupported('audio/mp4; codecs="mp3"')
     }; // navigator.vendor is not always available in Web Worker
     // refer to https://developer.mozilla.org/en-US/docs/Web/API/WorkerGlobalScope/navigator
 
@@ -9231,6 +9250,10 @@ function () {
 
 
 
+function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
+
+function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 /**
  * @module LevelHelper
  *
@@ -9346,9 +9369,9 @@ function updateFragPTSDTS(details, frag, startPTS, endPTS, startDTS, endDTS) {
   return drift;
 }
 function mergeDetails(oldDetails, newDetails) {
-  // potentially retrieve cached initsegment
-  if (newDetails.initSegment && oldDetails.initSegment) {
-    newDetails.initSegment = oldDetails.initSegment;
+  // potentially retrieve cached initsegments
+  if (newDetails.initSegments && oldDetails.initSegments) {
+    newDetails.initSegments = _objectSpread({}, newDetails.initSegments, oldDetails.initSegments);
   } // check if old/new playlists have fragments in common
   // loop through overlapping SN and update startPTS , cc, and duration if any found
 
@@ -9472,14 +9495,14 @@ function computeReloadInterval(currentPlaylist, newPlaylist, lastRequestTime) {
 
   return Math.round(reloadInterval);
 }
-// CONCATENATED MODULE: ./src/utils/time-ranges.js
+// CONCATENATED MODULE: ./src/utils/time-ranges.ts
 /**
  *  TimeRanges to string helper
  */
 var TimeRanges = {
   toString: function toString(r) {
-    var log = '',
-        len = r.length;
+    var log = '';
+    var len = r.length;
 
     for (var i = 0; i < len; i++) {
       log += '[' + r.start(i).toFixed(3) + ',' + r.end(i).toFixed(3) + ']';
@@ -10269,6 +10292,11 @@ function (_TaskLoop) {
     this.fragmentTracker = null;
   };
 
+  _proto.computeLivePosition = function computeLivePosition(sliding, levelDetails) {
+    var targetLatency = this.config.liveSyncDuration !== undefined ? this.config.liveSyncDuration : this.config.liveSyncDurationCount * levelDetails.targetduration;
+    return sliding + Math.max(0, levelDetails.totalduration - targetLatency);
+  };
+
   return BaseStreamController;
 }(TaskLoop);
 
@@ -10516,30 +10544,25 @@ function (_BaseStreamController) {
     var start = fragments[0].start,
         end = fragments[fragLen - 1].start + fragments[fragLen - 1].duration,
         bufferEnd = bufferInfo.end,
-        frag;
+        frag; // in case of live playlist we need to ensure that requested position is not located before playlist start
 
-    if (levelDetails.initSegment && !levelDetails.initSegment.data) {
-      frag = levelDetails.initSegment;
+    if (levelDetails.live) {
+      var initialLiveManifestSize = this.config.initialLiveManifestSize;
+
+      if (fragLen < initialLiveManifestSize) {
+        logger["logger"].warn("Can not start playback of a level, reason: not enough fragments " + fragLen + " < " + initialLiveManifestSize);
+        return;
+      }
+
+      frag = this._ensureFragmentAtLivePoint(levelDetails, bufferEnd, start, end, fragPrevious, fragments, fragLen); // if it explicitely returns null don't load any fragment and exit function now
+
+      if (frag === null) {
+        return;
+      }
     } else {
-      // in case of live playlist we need to ensure that requested position is not located before playlist start
-      if (levelDetails.live) {
-        var initialLiveManifestSize = this.config.initialLiveManifestSize;
-
-        if (fragLen < initialLiveManifestSize) {
-          logger["logger"].warn("Can not start playback of a level, reason: not enough fragments " + fragLen + " < " + initialLiveManifestSize);
-          return;
-        }
-
-        frag = this._ensureFragmentAtLivePoint(levelDetails, bufferEnd, start, end, fragPrevious, fragments, fragLen); // if it explicitely returns null don't load any fragment and exit function now
-
-        if (frag === null) {
-          return;
-        }
-      } else {
-        // VoD playlist: if bufferEnd before start of playlist, load first fragment
-        if (bufferEnd < start) {
-          frag = fragments[0];
-        }
+      // VoD playlist: if bufferEnd before start of playlist, load first fragment
+      if (bufferEnd < start) {
+        frag = fragments[0];
       }
     }
 
@@ -10548,6 +10571,10 @@ function (_BaseStreamController) {
     }
 
     if (frag) {
+      if (levelDetails.initSegments[frag.initSegment] && !levelDetails.initSegments[frag.initSegment].data) {
+        frag = levelDetails.initSegments[frag.initSegment].fragment;
+      }
+
       if (frag.encrypted && !this.hls.config.emeEnabled) {
         logger["logger"].log("Loading key for " + frag.sn + " of [" + levelDetails.startSN + " ," + levelDetails.endSN + "],level " + level);
 
@@ -11171,7 +11198,7 @@ function (_BaseStreamController) {
       } else if (fragLoaded.sn === 'initSegment') {
         this.state = State.IDLE;
         stats.tparsed = stats.tbuffered = window.performance.now();
-        details.initSegment.data = data.payload;
+        details.initSegments[data.frag.relurl].data = data.payload;
         hls.trigger(events["default"].FRAG_BUFFERED, {
           stats: stats,
           frag: fragCurrent,
@@ -11194,7 +11221,7 @@ function (_BaseStreamController) {
 
 
         var accurateTimeOffset = !(media && media.seeking) && (details.PTSKnown || !details.live);
-        var initSegmentData = details.initSegment ? details.initSegment.data : [];
+        var initSegmentData = details.initSegments[fragCurrent.initSegment] ? details.initSegments[fragCurrent.initSegment].data : [];
 
         var audioCodec = this._getAudioCodec(currentLevel); // transmux the MPEG-TS data to ISO-BMFF segments
 
@@ -11676,11 +11703,6 @@ function (_BaseStreamController) {
 
   _proto.swapAudioCodec = function swapAudioCodec() {
     this.audioCodecSwap = !this.audioCodecSwap;
-  };
-
-  _proto.computeLivePosition = function computeLivePosition(sliding, levelDetails) {
-    var targetLatency = this.config.liveSyncDuration !== undefined ? this.config.liveSyncDuration : this.config.liveSyncDurationCount * levelDetails.targetduration;
-    return sliding + Math.max(0, levelDetails.totalduration - targetLatency);
   }
   /**
    * Seeks to the set startPosition if not equal to the mediaElement's current time.
@@ -12304,12 +12326,12 @@ function (_EventHandler) {
 // EXTERNAL MODULE: ./src/demux/id3.js
 var id3 = __webpack_require__("./src/demux/id3.js");
 
-// CONCATENATED MODULE: ./src/utils/texttrack-utils.js
+// CONCATENATED MODULE: ./src/utils/texttrack-utils.ts
 function sendAddTrackEvent(track, videoEl) {
-  var event = null;
+  var event;
 
   try {
-    event = new window.Event('addtrack');
+    event = new Event('addtrack');
   } catch (err) {
     // for IE11
     event = document.createEvent('Event');
@@ -12448,7 +12470,7 @@ function is_supported_isSupported() {
   var sourceBufferValidAPI = !sourceBuffer || sourceBuffer.prototype && typeof sourceBuffer.prototype.appendBuffer === 'function' && typeof sourceBuffer.prototype.remove === 'function';
   return !!isTypeSupported && !!sourceBufferValidAPI;
 }
-// CONCATENATED MODULE: ./src/utils/ewma.js
+// CONCATENATED MODULE: ./src/utils/ewma.ts
 /*
  * compute an Exponential Weighted moving average
  * - https://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
@@ -12459,6 +12481,9 @@ var EWMA =
 function () {
   //  About half of the estimated value will be from the last |halfLife| samples by weight.
   function EWMA(halfLife) {
+    this.alpha_ = void 0;
+    this.estimate_ = void 0;
+    this.totalWeight_ = void 0;
     // Larger values of alpha expire historical data more slowly.
     this.alpha_ = halfLife ? Math.exp(Math.log(0.5) / halfLife) : 0;
     this.estimate_ = 0;
@@ -12490,7 +12515,7 @@ function () {
 }();
 
 /* harmony default export */ var ewma = (EWMA);
-// CONCATENATED MODULE: ./src/utils/ewma-bandwidth-estimator.js
+// CONCATENATED MODULE: ./src/utils/ewma-bandwidth-estimator.ts
 /*
  * EWMA Bandwidth Estimator
  *  - heavily inspired from shaka-player
@@ -12503,7 +12528,14 @@ function () {
 var ewma_bandwidth_estimator_EwmaBandWidthEstimator =
 /*#__PURE__*/
 function () {
+  // TODO(typescript-hls)
   function EwmaBandWidthEstimator(hls, slow, fast, defaultEstimate) {
+    this.hls = void 0;
+    this.defaultEstimate_ = void 0;
+    this.minWeight_ = void 0;
+    this.minDelayMs_ = void 0;
+    this.slow_ = void 0;
+    this.fast_ = void 0;
     this.hls = hls;
     this.defaultEstimate_ = defaultEstimate;
     this.minWeight_ = 0.001;
@@ -14239,9 +14271,9 @@ function () {
 var empty = __webpack_require__("./src/empty.js");
 
 // CONCATENATED MODULE: ./src/config.ts
-function _objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { _defineProperty(target, key, source[key]); }); } return target; }
+function config_objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { config_defineProperty(target, key, source[key]); }); } return target; }
 
-function _defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+function config_defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
 
 /**
  * HLS config
@@ -14259,7 +14291,10 @@ function _defineProperty(obj, key, value) { if (key in obj) { Object.definePrope
 
 
 
-var hlsDefaultConfig = _objectSpread({
+// If possible, keep hlsDefaultConfig shallow
+// It is cloned whenever a new Hls instance is created, by keeping the config
+// shallow the properties are cloned, and we don't end up manipulating the default
+var hlsDefaultConfig = config_objectSpread({
   autoStartLoad: true,
   // used by stream-controller
   startPosition: -1,
@@ -14425,8 +14460,12 @@ function timelineConfig() {
 
   };
 }
-// CONCATENATED MODULE: ./src/hls.js
+// CONCATENATED MODULE: ./src/hls.ts
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return hls_Hls; });
+function hls_objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; var ownKeys = Object.keys(source); if (typeof Object.getOwnPropertySymbols === 'function') { ownKeys = ownKeys.concat(Object.getOwnPropertySymbols(source).filter(function (sym) { return Object.getOwnPropertyDescriptor(source, sym).enumerable; })); } ownKeys.forEach(function (key) { hls_defineProperty(target, key, source[key]); }); } return target; }
+
+function hls_defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function hls_assertThisInitialized(self) { if (self === void 0) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return self; }
 
 function hls_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
@@ -14532,35 +14571,48 @@ function (_Observer) {
 
   }]);
 
-  function Hls(config) {
+  function Hls(userConfig) {
     var _this;
 
-    if (config === void 0) {
-      config = {};
+    if (userConfig === void 0) {
+      userConfig = {};
     }
 
     _this = _Observer.call(this) || this;
+    _this.config = void 0;
+    _this._autoLevelCapping = void 0;
+    _this.abrController = void 0;
+    _this.capLevelController = void 0;
+    _this.levelController = void 0;
+    _this.streamController = void 0;
+    _this.networkControllers = void 0;
+    _this.audioTrackController = void 0;
+    _this.subtitleTrackController = void 0;
+    _this.emeController = void 0;
+    _this.coreComponents = void 0;
+    _this.media = null;
+    _this.url = null;
     var defaultConfig = Hls.DefaultConfig;
 
-    if ((config.liveSyncDurationCount || config.liveMaxLatencyDurationCount) && (config.liveSyncDuration || config.liveMaxLatencyDuration)) {
+    if ((userConfig.liveSyncDurationCount || userConfig.liveMaxLatencyDurationCount) && (userConfig.liveSyncDuration || userConfig.liveMaxLatencyDuration)) {
       throw new Error('Illegal hls.js config: don\'t mix up liveSyncDurationCount/liveMaxLatencyDurationCount and liveSyncDuration/liveMaxLatencyDuration');
-    }
+    } // Shallow clone
 
-    for (var prop in defaultConfig) {
-      if (prop in config) continue;
-      config[prop] = defaultConfig[prop];
-    }
+
+    _this.config = hls_objectSpread({}, defaultConfig, userConfig);
+
+    var _assertThisInitialize = hls_assertThisInitialized(_this),
+        config = _assertThisInitialize.config;
 
     if (config.liveMaxLatencyDurationCount !== void 0 && config.liveMaxLatencyDurationCount <= config.liveSyncDurationCount) {
       throw new Error('Illegal hls.js config: "liveMaxLatencyDurationCount" must be gt "liveSyncDurationCount"');
     }
 
-    if (config.liveMaxLatencyDuration !== void 0 && (config.liveMaxLatencyDuration <= config.liveSyncDuration || config.liveSyncDuration === void 0)) {
+    if (config.liveMaxLatencyDuration !== void 0 && (config.liveSyncDuration === void 0 || config.liveMaxLatencyDuration <= config.liveSyncDuration)) {
       throw new Error('Illegal hls.js config: "liveMaxLatencyDuration" must be gt "liveSyncDuration"');
     }
 
     Object(logger["enableLogs"])(config.debug);
-    _this.config = config;
     _this._autoLevelCapping = -1; // core controllers and network loaders
 
     /**
@@ -14780,11 +14832,15 @@ function (_Observer) {
     logger["logger"].log('recoverMediaError');
     var media = this.media;
     this.detachMedia();
-    this.attachMedia(media);
+
+    if (media) {
+      this.attachMedia(media);
+    }
   }
   /**
    * @type {QualityLevel[]}
    */
+  // todo(typescript-levelController)
   ;
 
   hls_createClass(Hls, [{
@@ -14918,14 +14974,13 @@ function (_Observer) {
      */
     ,
     set: function set(newLevel) {
-      logger["logger"].log("set startLevel:" + newLevel);
-      var hls = this; // if not in automatic start level detection, ensure startLevel is greater than minAutoLevel
+      logger["logger"].log("set startLevel:" + newLevel); // if not in automatic start level detection, ensure startLevel is greater than minAutoLevel
 
       if (newLevel !== -1) {
-        newLevel = Math.max(newLevel, hls.minAutoLevel);
+        newLevel = Math.max(newLevel, this.minAutoLevel);
       }
 
-      hls.levelController.startLevel = newLevel;
+      this.levelController.startLevel = newLevel;
     }
     /**
      * set  dynamically set capLevelToPlayerSize against (`CapLevelController`)
@@ -15008,9 +15063,8 @@ function (_Observer) {
   }, {
     key: "minAutoLevel",
     get: function get() {
-      var hls = this;
-      var levels = hls.levels;
-      var minAutoBitrate = hls.config.minAutoBitrate;
+      var levels = this.levels,
+          minAutoBitrate = this.config.minAutoBitrate;
       var len = levels ? levels.length : 0;
 
       for (var i = 0; i < len; i++) {
@@ -15031,9 +15085,8 @@ function (_Observer) {
   }, {
     key: "maxAutoLevel",
     get: function get() {
-      var hls = this;
-      var levels = hls.levels;
-      var autoLevelCapping = hls.autoLevelCapping;
+      var levels = this.levels,
+          autoLevelCapping = this.autoLevelCapping;
       var maxAutoLevel;
 
       if (autoLevelCapping === -1 && levels && levels.length) {
@@ -15052,9 +15105,8 @@ function (_Observer) {
   }, {
     key: "nextAutoLevel",
     get: function get() {
-      var hls = this; // ensure next auto level is between  min and max auto level
-
-      return Math.min(Math.max(hls.abrController.nextAutoLevel, hls.minAutoLevel), hls.maxAutoLevel);
+      // ensure next auto level is between  min and max auto level
+      return Math.min(Math.max(this.abrController.nextAutoLevel, this.minAutoLevel), this.maxAutoLevel);
     }
     /**
      * this setter is used to force next auto level.
@@ -15066,12 +15118,12 @@ function (_Observer) {
      */
     ,
     set: function set(nextLevel) {
-      var hls = this;
-      hls.abrController.nextAutoLevel = Math.max(hls.minAutoLevel, nextLevel);
+      this.abrController.nextAutoLevel = Math.max(this.minAutoLevel, nextLevel);
     }
     /**
      * @type {AudioTrack[]}
      */
+    // todo(typescript-audioTrackController)
 
   }, {
     key: "audioTracks",
@@ -15115,6 +15167,7 @@ function (_Observer) {
      * get alternate subtitle tracks list from playlist
      * @type {SubtitleTrack[]}
      */
+    // todo(typescript-subtitleTrackController)
 
   }, {
     key: "subtitleTracks",
@@ -15135,7 +15188,7 @@ function (_Observer) {
     }
     /**
      * select an subtitle track, based on its index in subtitle track lists
-     * @type{number}
+     * @type {number}
      */
     ,
     set: function set(subtitleTrackId) {
@@ -15172,6 +15225,7 @@ function (_Observer) {
   return Hls;
 }(Observer);
 
+hls_Hls.defaultConfig = void 0;
 
 
 /***/ }),

@@ -73,11 +73,9 @@ class AudioStreamController extends BaseStreamController {
       if (lastCurrentTime > 0 && startPosition === -1) {
         logger.log(`audio:override startPosition with lastCurrentTime @${lastCurrentTime.toFixed(3)}`);
         this.state = State.IDLE;
-      } else {
-        this.lastCurrentTime = this.startPosition ? this.startPosition : startPosition;
-        this.state = State.STARTING;
       }
-      this.nextLoadPosition = this.startPosition = this.lastCurrentTime;
+      this.state = State.IDLE;
+      this.nextLoadPosition = this.startPosition = this.lastCurrentTime = startPosition;
       this.tick();
     } else {
       this.startPosition = startPosition;
@@ -122,7 +120,7 @@ class AudioStreamController extends BaseStreamController {
       // start fragment already requested OR start frag prefetch disable
       // exit loop
       // => if media not attached but start frag prefetch is enabled and start frag not requested yet, we will not exit loop
-      if (!this.media &&
+      if (this.trackLastLoaded === undefined || !this.media &&
           (this.startFragRequested || !config.startFragPrefetch)) {
         break;
       }
@@ -130,7 +128,7 @@ class AudioStreamController extends BaseStreamController {
       // determine next candidate fragment to be loaded, based on current position and
       //  end of buffer position
       // if we have not yet loaded any fragment, start loading from start position
-      if (this.loadedmetadata) {
+      if (this.loadedmetadata && this.media.currentTime) {
         pos = this.media.currentTime;
       } else {
         pos = this.nextLoadPosition;
@@ -159,7 +157,7 @@ class AudioStreamController extends BaseStreamController {
         // if track info not retrieved yet, switch state and wait for track retrieval
         if (typeof trackDetails === 'undefined') {
           this.state = State.WAITING_TRACK;
-          break;
+          return;
         }
 
         if (!audioSwitch && this._streamEnded(bufferInfo, trackDetails)) {
@@ -194,11 +192,7 @@ class AudioStreamController extends BaseStreamController {
             }
           }
         }
-        if (trackDetails.initSegment && !trackDetails.initSegment.data) {
-          frag = trackDetails.initSegment;
-        } // eslint-disable-line brace-style
-        // if bufferEnd before start of playlist, load first fragment
-        else if (bufferEnd <= start) {
+        if (bufferEnd <= start) {
           frag = fragments[0];
           if (this.videoTrackCC !== null && frag.cc !== this.videoTrackCC) {
             // Ensure we find a fragment which matches the continuity of the video track
@@ -281,6 +275,9 @@ class AudioStreamController extends BaseStreamController {
             logger.log(`Loading ${frag.sn}, cc: ${frag.cc} of [${trackDetails.startSN} ,${trackDetails.endSN}],track ${trackId}, currentTime:${pos},bufferEnd:${bufferEnd.toFixed(3)}`);
             // only load if fragment is not loaded or if in audio switch
             // we force a frag loading in audio switch as fragment tracker might not have evicted previous frags in case of quick audio switch
+            if (trackDetails.initSegments[frag.initSegment] && !trackDetails.initSegments[frag.initSegment].data) {
+              frag = trackDetails.initSegments[frag.initSegment].fragment;
+            }
             this.fragCurrent = frag;
             if (audioSwitch || this.fragmentTracker.getState(frag) === FragmentState.NOT_LOADED) {
               if (frag.sn !== 'initSegment') {
@@ -447,6 +444,7 @@ class AudioStreamController extends BaseStreamController {
       newDetails.PTSKnown = false;
     }
     track.details = newDetails;
+    this.trackLastLoaded = trackId;
 
     // compute start position
     if (!this.startFragRequested) {
@@ -458,7 +456,12 @@ class AudioStreamController extends BaseStreamController {
           logger.log(`start time offset found in playlist, adjust startPosition to ${startTimeOffset}`);
           this.startPosition = startTimeOffset;
         } else {
-          this.startPosition = 0;
+          if (newDetails.live) {
+            this.startPosition = this.computeLivePosition(sliding, newDetails);
+            logger.log(`compute startPosition for audio-track to ${this.startPosition}`);
+          } else {
+            this.startPosition = 0;
+          }
         }
       }
       this.nextLoadPosition = this.startPosition;
@@ -499,7 +502,7 @@ class AudioStreamController extends BaseStreamController {
         this.state = State.IDLE;
 
         stats.tparsed = stats.tbuffered = performance.now();
-        details.initSegment.data = data.payload;
+        details.initSegments[data.frag.relurl].data = data.payload;
         this.hls.trigger(Event.FRAG_BUFFERED, { stats: stats, frag: fragCurrent, id: 'audio' });
         this.tick();
       } else {
@@ -513,8 +516,8 @@ class AudioStreamController extends BaseStreamController {
         // Check if we have video initPTS
         // If not we need to wait for it
         let initPTS = this.initPTS[cc];
-        let initSegmentData = details.initSegment ? details.initSegment.data : [];
-        if (details.initSegment || initPTS !== undefined) {
+        const initSegmentData = details.initSegments[fragCurrent.initSegment] ? details.initSegments[fragCurrent.initSegment].data : [];
+        if (details.initSegments[fragCurrent.initSegment] || initPTS !== undefined) {
           this.pendingBuffering = true;
           logger.log(`Demuxing ${sn} of [${details.startSN} ,${details.endSN}],track ${trackId}`);
           // time Offset is accurate if level PTS is known, or if playlist is not sliding (not live)
