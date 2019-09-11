@@ -771,6 +771,10 @@ class StreamController extends BaseStreamController {
         alignStream(this.fragPrevious, lastLevel, newDetails);
       }
     } else {
+      let curDetails = curLevel.details;
+      if (curDetails && curDetails.initSegments) {
+        newDetails.initSegments = {...newDetails.initSegments, ...curDetails.initSegments}
+      }
       newDetails.PTSKnown = false;
     }
     // override level info
