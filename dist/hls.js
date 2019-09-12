@@ -10333,6 +10333,12 @@ function (_TaskLoop) {
 
 
 
+function stream_controller_ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { keys.push.apply(keys, Object.getOwnPropertySymbols(object)); } if (enumerableOnly) keys = keys.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); return keys; }
+
+function stream_controller_objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { stream_controller_ownKeys(source, true).forEach(function (key) { stream_controller_defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { stream_controller_ownKeys(source).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
+
+function stream_controller_defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function stream_controller_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
 
 function stream_controller_createClass(Constructor, protoProps, staticProps) { if (protoProps) stream_controller_defineProperties(Constructor.prototype, protoProps); if (staticProps) stream_controller_defineProperties(Constructor, staticProps); return Constructor; }
@@ -11134,6 +11140,12 @@ function (_BaseStreamController) {
         alignStream(this.fragPrevious, lastLevel, newDetails);
       }
     } else {
+      var _curDetails = curLevel.details;
+
+      if (_curDetails && _curDetails.initSegments) {
+        newDetails.initSegments = stream_controller_objectSpread({}, newDetails.initSegments, {}, _curDetails.initSegments);
+      }
+
       newDetails.PTSKnown = false;
     } // override level info
 
@@ -14802,6 +14814,12 @@ function (_TaskLoop) {
 
 
 
+function audio_stream_controller_ownKeys(object, enumerableOnly) { var keys = Object.keys(object); if (Object.getOwnPropertySymbols) { keys.push.apply(keys, Object.getOwnPropertySymbols(object)); } if (enumerableOnly) keys = keys.filter(function (sym) { return Object.getOwnPropertyDescriptor(object, sym).enumerable; }); return keys; }
+
+function audio_stream_controller_objectSpread(target) { for (var i = 1; i < arguments.length; i++) { var source = arguments[i] != null ? arguments[i] : {}; if (i % 2) { audio_stream_controller_ownKeys(source, true).forEach(function (key) { audio_stream_controller_defineProperty(target, key, source[key]); }); } else if (Object.getOwnPropertyDescriptors) { Object.defineProperties(target, Object.getOwnPropertyDescriptors(source)); } else { audio_stream_controller_ownKeys(source).forEach(function (key) { Object.defineProperty(target, key, Object.getOwnPropertyDescriptor(source, key)); }); } } return target; }
+
+function audio_stream_controller_defineProperty(obj, key, value) { if (key in obj) { Object.defineProperty(obj, key, { value: value, enumerable: true, configurable: true, writable: true }); } else { obj[key] = value; } return obj; }
+
 function audio_stream_controller_defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } }
 
 function audio_stream_controller_createClass(Constructor, protoProps, staticProps) { if (protoProps) audio_stream_controller_defineProperties(Constructor.prototype, protoProps); if (staticProps) audio_stream_controller_defineProperties(Constructor, staticProps); return Constructor; }
@@ -15270,6 +15288,12 @@ function (_BaseStreamController) {
         logger["logger"].log('live audio playlist - first load, unknown sliding');
       }
     } else {
+      var _curDetails = track.details;
+
+      if (_curDetails && _curDetails.initSegments) {
+        newDetails.initSegments = audio_stream_controller_objectSpread({}, newDetails.initSegments, {}, _curDetails.initSegments);
+      }
+
       newDetails.PTSKnown = false;
     }
 
@@ -20001,7 +20025,7 @@ function (_Observer) {
      * @type {string}
      */
     get: function get() {
-      return "0.12.3-re.0";
+      return "0.12.3-re.1";
     }
   }, {
     key: "Events",
