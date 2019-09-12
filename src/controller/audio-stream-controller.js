@@ -441,6 +441,10 @@ class AudioStreamController extends BaseStreamController {
         logger.log('live audio playlist - first load, unknown sliding');
       }
     } else {
+      let curDetails = track.details;
+      if (curDetails && curDetails.initSegments) {
+        newDetails.initSegments = {...newDetails.initSegments, ...curDetails.initSegments}
+      }
       newDetails.PTSKnown = false;
     }
     track.details = newDetails;
