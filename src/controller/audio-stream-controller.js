@@ -177,7 +177,7 @@ class AudioStreamController extends BaseStreamController {
         if (audioSwitch) {
           if (trackDetails.live && !trackDetails.PTSKnown) {
             logger.log('switching audiotrack, live stream, unknown PTS,load first fragment');
-            bufferEnd = 0;
+            bufferEnd = bufferInfo.end;
           } else {
             bufferEnd = pos;
             // if currentTime (pos) is less than alt audio playlist start time, it means that alt audio is ahead of currentTime
