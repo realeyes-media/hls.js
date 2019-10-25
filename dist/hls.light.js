@@ -14535,7 +14535,7 @@ function (_Observer) {
      * @type {string}
      */
     get: function get() {
-      return "0.12.3-re.1";
+      return "0.12.3-re.2";
     }
   }, {
     key: "Events",

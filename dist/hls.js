@@ -14996,7 +14996,7 @@ function (_BaseStreamController) {
           if (audioSwitch) {
             if (trackDetails.live && !trackDetails.PTSKnown) {
               logger["logger"].log('switching audiotrack, live stream, unknown PTS,load first fragment');
-              bufferEnd = 0;
+              bufferEnd = bufferInfo.end;
             } else {
               bufferEnd = pos; // if currentTime (pos) is less than alt audio playlist start time, it means that alt audio is ahead of currentTime
 
@@ -20025,7 +20025,7 @@ function (_Observer) {
      * @type {string}
      */
     get: function get() {
-      return "0.12.3-re.1";
+      return "0.12.3-re.2";
     }
   }, {
     key: "Events",
