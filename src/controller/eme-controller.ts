@@ -30,12 +30,15 @@ class EMEController extends EventHandler {
   private _initDataType: string | null = null;
   private _initData: ArrayBuffer | null = null;
   private _keySessions: MediaKeySession[] = [];
+  private _emeConfiguring: boolean = false;
+  private _emeConfigured: boolean = false;
 
   /**
    * User configurations
    */
   private _emeEnabled: boolean;
   private _emeInitDataInFrag: boolean;
+  private _reuseEMELicense: boolean;
   private _requestMediaKeySystemAccess: (supportedConfigurations: MediaKeySystemConfiguration[]) => Promise<MediaKeySystemAccess>
   private _getEMEInitializationData: (levelOrAudioTrack: any, initDataType: string | null, initData: ArrayBuffer | null) => Promise<EMEInitDataInfo>;
   private _getEMELicense: (levelOrAudioTrack: any, event: MediaKeyMessageEvent) => Promise<ArrayBuffer>;
@@ -53,6 +56,7 @@ class EMEController extends EventHandler {
 
     this._emeEnabled = hls.config.emeEnabled;
     this._emeInitDataInFrag = hls.config.emeInitDataInFrag;
+    this._reuseEMELicense = hls.config.reuseEMELicense;
     this._requestMediaKeySystemAccess = hls.config.requestMediaKeySystemAccessFunc;
     this._getEMEInitializationData = hls.config.getEMEInitializationDataFunc;
     this._getEMELicense = hls.config.getEMELicenseFunc;
@@ -221,6 +225,8 @@ class EMEController extends EventHandler {
   private _configureEME () {
     this.hls.trigger(Event.EME_CONFIGURING, {});
 
+    this._emeConfiguring = true;
+
     const mediaKeySystemConfigs = this._getSupportedMediaKeySystemConfigurations(this.manifestData.levels);
 
     this._getMediaKeySystemAccess(mediaKeySystemConfigs).then((mediaKeySystemAccess) => {
@@ -234,15 +240,21 @@ class EMEController extends EventHandler {
     }).then((mediaKeys) => {
       logger.log('Set media keys on media');
 
-      const levelRequests = this.manifestData.levels.map((level) => {
-        return this._onMediaKeysSet(mediaKeys, level);
-      });
+      let keySessionRequests: Promise<EMEKeySessionResponse>[];
 
-      const audioRequests = this.manifestData.audioTracks.map((audioTrack) => {
-        return this._onMediaKeysSet(mediaKeys, audioTrack);
-      });
-
-      const keySessionRequests = levelRequests.concat(audioRequests);
+      if (this._reuseEMELicense && this.manifestData.levels.length) {
+        keySessionRequests = [this._onMediaKeysSet(mediaKeys, this.manifestData.levels[0])];
+      } else {
+        const levelRequests = this.manifestData.levels.map((level) => {
+          return this._onMediaKeysSet(mediaKeys, level);
+        });
+  
+        const audioRequests = this.manifestData.audioTracks.map((audioTrack) => {
+          return this._onMediaKeysSet(mediaKeys, audioTrack);
+        });
+  
+        keySessionRequests = levelRequests.concat(audioRequests);
+      }
 
       return keySessionRequests.reduce((prevKeySessionRequest, currentKeySessionRequest) => {
         return prevKeySessionRequest.then((prevKeySessionResponses) => {
@@ -266,9 +278,15 @@ class EMEController extends EventHandler {
     }).then(() => {
       logger.log('EME sucessfully configured');
 
+      this._emeConfiguring = false;
+      this._emeConfigured = true;
+
       this.hls.trigger(Event.EME_CONFIGURED, {});
     }).catch((err: string) => {
       logger.error('EME Configuration failed');
+
+      this._emeConfiguring = false;
+      this._emeConfigured = false;
 
       this.hls.trigger(Event.ERROR, {
         type: ErrorTypes.KEY_SYSTEM_ERROR,
@@ -285,11 +303,14 @@ class EMEController extends EventHandler {
       this._media = media; // keep reference of media
 
       this.media.addEventListener('encrypted', (event) => {
-        this.initDataType = event.initDataType;
+        if (!this._emeConfiguring && !this._emeConfigured) {
+          this.initDataType = event.initDataType;
 
-        this.initData = event.initData;
+          this.initData = event.initData;
 
-        this._configureEME();
+          this._configureEME();
+        }
+        
       });
     }
   }
@@ -298,7 +319,7 @@ class EMEController extends EventHandler {
     if (this.emeEnabled) {
       this.manifestData = data;
 
-      if (!this.emeInitDataInFrag) {
+      if (!this.emeInitDataInFrag && !this._emeConfiguring && !this._emeConfigured) {
         this._configureEME();
       }
     }

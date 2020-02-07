@@ -76,6 +76,7 @@
   - [`abrMaxWithRealBitrate`](#abrmaxwithrealbitrate)
   - [`minAutoBitrate`](#minautobitrate)
   - [`emeEnabled`](#emeEnabled)
+  - [`reuseEMELicense`](#reuseEMELicense)
   - [`emeInitDataInFrag`](#emeInitDataInFrag)
   - [`requestMediaKeySystemAccessFunc`](#requestMediaKeySystemAccessFunc)
   - [`getEMEInitializationDataFunc`](#getEMEInitializationDataFunc)
@@ -363,6 +364,7 @@ Configuration parameters could be provided to hls.js upon instantiation of `Hls`
       maxLoadingDelay: 4,
       minAutoBitrate: 0,
       emeEnabled: false,
+      reuseEMELicense: false,
       emeInitDataInFrag: true,
       requestMediaKeySystemAccessFunc: undefined,
       getEMEInitializationDataFunc: undefined,
@@ -1007,6 +1009,12 @@ Note: EME is only available when served over HTTPS. Setting `emeEnabled` for a s
 (default: `false`)
 
 Whether to configure EME for the stream, using the `requestMediaKeySystemAccessFunc`, `getEMEInitializationDataFunc`, and `getEMELicenseFunc` hooks. If set, all three hooks must be implemented.
+
+### `reuseEMELicense`
+
+(default: `false`)
+
+Whether to reuse an EME license once it has been acquired for all levels and tracks. If true, the EME hooks will only be triggered for the first level, and all other levels and tracks will be assumed to be able to reuse the same license.
 
 ### `emeInitDataInFrag`
 
