@@ -19430,13 +19430,17 @@ function (_EventHandler) {
     _this._initDataType = null;
     _this._initData = null;
     _this._keySessions = [];
+    _this._emeConfiguring = false;
+    _this._emeConfigured = false;
     _this._emeEnabled = void 0;
     _this._emeInitDataInFrag = void 0;
+    _this._reuseEMELicense = void 0;
     _this._requestMediaKeySystemAccess = void 0;
     _this._getEMEInitializationData = void 0;
     _this._getEMELicense = void 0;
     _this._emeEnabled = hls.config.emeEnabled;
     _this._emeInitDataInFrag = hls.config.emeInitDataInFrag;
+    _this._reuseEMELicense = hls.config.reuseEMELicense;
     _this._requestMediaKeySystemAccess = hls.config.requestMediaKeySystemAccessFunc;
     _this._getEMEInitializationData = hls.config.getEMEInitializationDataFunc;
     _this._getEMELicense = hls.config.getEMELicenseFunc;
@@ -19598,6 +19602,7 @@ function (_EventHandler) {
     var _this3 = this;
 
     this.hls.trigger(events["default"].EME_CONFIGURING, {});
+    this._emeConfiguring = true;
 
     var mediaKeySystemConfigs = this._getSupportedMediaKeySystemConfigurations(this.manifestData.levels);
 
@@ -19609,16 +19614,22 @@ function (_EventHandler) {
       return _this3._onMediaKeysCreated(mediaKeys);
     }).then(function (mediaKeys) {
       logger["logger"].log('Set media keys on media');
+      var keySessionRequests;
 
-      var levelRequests = _this3.manifestData.levels.map(function (level) {
-        return _this3._onMediaKeysSet(mediaKeys, level);
-      });
+      if (_this3._reuseEMELicense && _this3.manifestData.levels.length) {
+        keySessionRequests = [_this3._onMediaKeysSet(mediaKeys, _this3.manifestData.levels[0])];
+      } else {
+        var levelRequests = _this3.manifestData.levels.map(function (level) {
+          return _this3._onMediaKeysSet(mediaKeys, level);
+        });
 
-      var audioRequests = _this3.manifestData.audioTracks.map(function (audioTrack) {
-        return _this3._onMediaKeysSet(mediaKeys, audioTrack);
-      });
+        var audioRequests = _this3.manifestData.audioTracks.map(function (audioTrack) {
+          return _this3._onMediaKeysSet(mediaKeys, audioTrack);
+        });
 
-      var keySessionRequests = levelRequests.concat(audioRequests);
+        keySessionRequests = levelRequests.concat(audioRequests);
+      }
+
       return keySessionRequests.reduce(function (prevKeySessionRequest, currentKeySessionRequest) {
         return prevKeySessionRequest.then(function (prevKeySessionResponses) {
           return currentKeySessionRequest.then(function (keySessionResponse) {
@@ -19638,10 +19649,14 @@ function (_EventHandler) {
       }, Promise.resolve());
     }).then(function () {
       logger["logger"].log('EME sucessfully configured');
+      _this3._emeConfiguring = false;
+      _this3._emeConfigured = true;
 
       _this3.hls.trigger(events["default"].EME_CONFIGURED, {});
     }).catch(function (err) {
       logger["logger"].error('EME Configuration failed');
+      _this3._emeConfiguring = false;
+      _this3._emeConfigured = false;
 
       _this3.hls.trigger(events["default"].ERROR, {
         type: errors["ErrorTypes"].KEY_SYSTEM_ERROR,
@@ -19660,10 +19675,12 @@ function (_EventHandler) {
       this._media = media; // keep reference of media
 
       this.media.addEventListener('encrypted', function (event) {
-        _this4.initDataType = event.initDataType;
-        _this4.initData = event.initData;
+        if (!_this4._emeConfiguring && !_this4._emeConfigured) {
+          _this4.initDataType = event.initDataType;
+          _this4.initData = event.initData;
 
-        _this4._configureEME();
+          _this4._configureEME();
+        }
       });
     }
   };
@@ -19672,7 +19689,7 @@ function (_EventHandler) {
     if (this.emeEnabled) {
       this.manifestData = data;
 
-      if (!this.emeInitDataInFrag) {
+      if (!this.emeInitDataInFrag && !this._emeConfiguring && !this._emeConfigured) {
         this._configureEME();
       }
     }
@@ -19931,6 +19948,8 @@ var hlsDefaultConfig = config_objectSpread({
   emeEnabled: false,
   // used by eme-controller
   emeInitDataInFrag: true,
+  // used by eme-controller
+  reuseEMELicense: false,
   // used by eme-controller
   requestMediaKeySystemAccessFunc: undefined,
   // used by eme-controller

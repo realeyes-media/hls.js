@@ -14438,6 +14438,8 @@ var hlsDefaultConfig = config_objectSpread({
   // used by eme-controller
   emeInitDataInFrag: true,
   // used by eme-controller
+  reuseEMELicense: false,
+  // used by eme-controller
   requestMediaKeySystemAccessFunc: undefined,
   // used by eme-controller
   getEMEInitializationDataFunc: undefined,
