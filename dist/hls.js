@@ -6857,12 +6857,12 @@ function () {
     if (levelkey && levelkey.method && levelkey.uri) {
       decryptdata = new level_key_LevelKey(levelkey.baseuri, levelkey.reluri);
       decryptdata.method = levelkey.method;
-    }
 
-    if (!levelkey.iv) {
-      decryptdata.iv = levelkey.iv = this.createInitializationVector(segmentNumber);
-    } else {
-      decryptdata.iv = levelkey.iv;
+      if (!levelkey.iv) {
+        decryptdata.iv = levelkey.iv = this.createInitializationVector(segmentNumber);
+      } else {
+        decryptdata.iv = levelkey.iv;
+      }
     }
 
     return decryptdata || null;
