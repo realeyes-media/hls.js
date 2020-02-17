@@ -6854,10 +6854,15 @@ function () {
   _proto.setDecryptDataFromLevelKey = function setDecryptDataFromLevelKey(levelkey, segmentNumber) {
     var decryptdata;
 
-    if (levelkey && levelkey.method && levelkey.uri && !levelkey.iv) {
+    if (levelkey && levelkey.method && levelkey.uri) {
       decryptdata = new level_key_LevelKey(levelkey.baseuri, levelkey.reluri);
       decryptdata.method = levelkey.method;
-      decryptdata.iv = this.createInitializationVector(segmentNumber);
+    }
+
+    if (!levelkey.iv) {
+      decryptdata.iv = levelkey.iv = this.createInitializationVector(segmentNumber);
+    } else {
+      decryptdata.iv = levelkey.iv;
     }
 
     return decryptdata || null;
@@ -20044,7 +20049,7 @@ function (_Observer) {
      * @type {string}
      */
     get: function get() {
-      return "0.12.3-re.3";
+      return "0.12.3-re.4";
     }
   }, {
     key: "Events",
