@@ -3535,16 +3535,22 @@ function () {
 
 
     while (offset < len) {
-      if (isHeader(data, offset) && offset + 5 < len) {
-        var frame = appendFrame(track, data, offset, pts, frameIndex);
+      if (isHeader(data, offset)) {
+        if (offset + 5 < len) {
+          var frame = appendFrame(track, data, offset, pts, frameIndex);
 
-        if (frame) {
-          // logger.log(`${Math.round(frame.sample.pts)} : AAC`);
-          offset += frame.length;
-          stamp = frame.sample.pts;
-          frameIndex++;
+          if (frame) {
+            // logger.log(`${Math.round(frame.sample.pts)} : AAC`);
+            offset += frame.length;
+            stamp = frame.sample.pts;
+            frameIndex++;
+          } else {
+            // Remaining data will be added to aacOverFlow
+            // logger.log('Unable to parse AAC frame');
+            break;
+          }
         } else {
-          // logger.log('Unable to parse AAC frame');
+          // Remaining data will be added to aacOverFlow
           break;
         }
       } else {
@@ -20049,7 +20055,7 @@ function (_Observer) {
      * @type {string}
      */
     get: function get() {
-      return "0.12.3-re.4";
+      return "0.12.3-re.5";
     }
   }, {
     key: "Events",
