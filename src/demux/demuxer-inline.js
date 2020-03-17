@@ -102,7 +102,7 @@ class DemuxerInline {
 
     if (discontinuity || trackSwitch) {
       demuxer.resetInitSegment(initSegment, audioCodec, videoCodec, duration);
-      remuxer.resetInitSegment();
+      remuxer.resetInitSegment(initSegment, audioCodec, videoCodec);
     }
     if (discontinuity) {
       demuxer.resetTimeStamp(defaultInitPTS);
