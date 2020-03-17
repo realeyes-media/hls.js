@@ -3,7 +3,7 @@
  */
 import { logger } from '../utils/logger';
 import Event from '../events';
-import { findBox } from '../utils/mp4-tools'
+import { findBox } from '../utils/mp4-tools';
 
 const UINT32_MAX = Math.pow(2, 32) - 1;
 
@@ -71,8 +71,8 @@ class MP4Demuxer {
     * @return {Number} parsedCaptions[].endTime - The time to stop showing the caption in seconds
     * @return {String} parsedCaptions[].text - The visible content of the caption
   **/
-  parseEmbeddedCaptions(segment, trackId, timescale) {
-    var seiNals;
+  parseEmbeddedCaptions (segment, trackId, timescale) {
+    let seiNals;
 
     // the ISO-BMFF spec says that trackId can't be zero, but there's some broken content out there
     if (trackId === null) {
@@ -85,7 +85,7 @@ class MP4Demuxer {
       seiNals: seiNals[trackId],
       timescale: timescale
     };
-  };
+  }
   /**
   * Parses out caption nals from an FMP4 segment's video tracks.
   *
@@ -94,55 +94,55 @@ class MP4Demuxer {
   * @return {Object.<Number, Object[]>} A mapping of video trackId to
   *   a list of seiNals found in that track
   **/
-  parseCaptionNals(data, videoTrackId) {
+  parseCaptionNals (data, videoTrackId) {
   // To get the samples
-  var trafs = findBox(data, ['moof', 'traf']);
-  // To get SEI NAL units
-  var mdats = findBox(data, ['mdat']);
-  var captionNals = {};
-  var mdatTrafPairs = [];
+    let trafs = findBox(data, ['moof', 'traf']);
+    // To get SEI NAL units
+    let mdats = findBox(data, ['mdat']);
+    let captionNals = {};
+    let mdatTrafPairs = [];
 
-  // Pair up each traf with a mdat as moofs and mdats are in pairs
-  mdats.forEach(function(mdat, index) {
-    var matchingTraf = trafs[index];
-    mdatTrafPairs.push({
-      mdat: mdat,
-      traf: matchingTraf
+    // Pair up each traf with a mdat as moofs and mdats are in pairs
+    mdats.forEach(function (mdat, index) {
+      let matchingTraf = trafs[index];
+      mdatTrafPairs.push({
+        mdat: mdat,
+        traf: matchingTraf
+      });
     });
-  });
 
-  mdatTrafPairs.forEach(function(pair) {
-    var mdat = pair.mdat;
-    var mdatBytes = mdat.data.subarray(mdat.start, mdat.end)
-    var traf = pair.traf;
-    var trafBytes = traf.data.subarray(traf.start, traf.end)
-    var tfhd = findBox(trafBytes, ['tfhd']);
-    // Exactly 1 tfhd per traf
-    var headerInfo = MP4Demuxer.parseTfhd(tfhd[0]);
-    var trackId = headerInfo.trackId;
-    var tfdt = findBox(trafBytes, ['tfdt']);
-    // Either 0 or 1 tfdt per traf
-    var baseMediaDecodeTime = (tfdt.length > 0) ? MP4Demuxer.parseTfdt(tfdt[0]).baseMediaDecodeTime : 0;
-    var truns = findBox(trafBytes, ['trun']);
-    var samples;
-    var seiNals;
+    mdatTrafPairs.forEach(function (pair) {
+      let mdat = pair.mdat;
+      let mdatBytes = mdat.data.subarray(mdat.start, mdat.end);
+      let traf = pair.traf;
+      let trafBytes = traf.data.subarray(traf.start, traf.end);
+      let tfhd = findBox(trafBytes, ['tfhd']);
+      // Exactly 1 tfhd per traf
+      let headerInfo = MP4Demuxer.parseTfhd(tfhd[0]);
+      let trackId = headerInfo.trackId;
+      let tfdt = findBox(trafBytes, ['tfdt']);
+      // Either 0 or 1 tfdt per traf
+      let baseMediaDecodeTime = (tfdt.length > 0) ? MP4Demuxer.parseTfdt(tfdt[0]).baseMediaDecodeTime : 0;
+      let truns = findBox(trafBytes, ['trun']);
+      let samples;
+      let seiNals;
 
-    // Only parse video data for the chosen video track
-    if (videoTrackId === trackId && truns.length > 0) {
-      samples = MP4Demuxer.parseSamples(truns, baseMediaDecodeTime, headerInfo);
+      // Only parse video data for the chosen video track
+      if (videoTrackId === trackId && truns.length > 0) {
+        samples = MP4Demuxer.parseSamples(truns, baseMediaDecodeTime, headerInfo);
 
-      seiNals = MP4Demuxer.findSeiNals(mdatBytes, samples, trackId);
+        seiNals = MP4Demuxer.findSeiNals(mdatBytes, samples, trackId);
 
-      if (!captionNals[trackId]) {
-        captionNals[trackId] = [];
+        if (!captionNals[trackId]) {
+          captionNals[trackId] = [];
+        }
+
+        captionNals[trackId] = captionNals[trackId].concat(seiNals);
       }
+    });
 
-      captionNals[trackId] = captionNals[trackId].concat(seiNals);
-    }
-  });
-
-  return captionNals;
-  };
+    return captionNals;
+  }
 
   static probe (data) {
     // ensure we find a moof box in the first 16 kB
@@ -233,9 +233,9 @@ class MP4Demuxer {
     return results;
   }
 
-  static parseTfhd(tfhd) {
+  static parseTfhd (tfhd) {
     const data = tfhd.data.subarray(tfhd.start, tfhd.end);
-    var
+    let
       view = new DataView(data.buffer, data.byteOffset, data.byteLength),
       result = {
         version: data[0],
@@ -248,9 +248,9 @@ class MP4Demuxer {
       defaultSampleSizePresent = result.flags[2] & 0x10,
       defaultSampleFlagsPresent = result.flags[2] & 0x20,
       durationIsEmpty = result.flags[0] & 0x010000,
-      defaultBaseIsMoof =  result.flags[0] & 0x020000,
+      defaultBaseIsMoof = result.flags[0] & 0x020000,
       i;
-  
+
     i = 8;
     if (baseDataOffsetPresent) {
       i += 4; // truncate top 4 bytes
@@ -282,9 +282,9 @@ class MP4Demuxer {
     return result;
   }
 
-  static parseTfdt(tfdt) {
+  static parseTfdt (tfdt) {
     const data = tfdt.data.subarray(tfdt.start, tfdt.end);
-    var result = {
+    let result = {
       version: data[0],
       flags: new Uint8Array(data.subarray(1, 4)),
       baseMediaDecodeTime: toUnsigned(data[4] << 24 | data[5] << 16 | data[6] << 8 | data[7])
@@ -527,21 +527,21 @@ class MP4Demuxer {
     });
   }
 
-  static parseSamples(truns, baseMediaDecodeTime, tfhd) {
-    var currentDts = baseMediaDecodeTime;
-    var defaultSampleDuration = tfhd.defaultSampleDuration || 0;
-    var defaultSampleSize = tfhd.defaultSampleSize || 0;
-    var trackId = tfhd.trackId;
-    var allSamples = [];
-  
-    truns.forEach(function(trun) {
+  static parseSamples (truns, baseMediaDecodeTime, tfhd) {
+    let currentDts = baseMediaDecodeTime;
+    let defaultSampleDuration = tfhd.defaultSampleDuration || 0;
+    let defaultSampleSize = tfhd.defaultSampleSize || 0;
+    let trackId = tfhd.trackId;
+    let allSamples = [];
+
+    truns.forEach(function (trun) {
       // Note: We currently do not parse the sample table as well
       // as the trun. It's possible some sources will require this.
       // moov > trak > mdia > minf > stbl
-      var trackRun = MP4Demuxer.parseTrun(trun);
-      var samples = trackRun.samples;
-  
-      samples.forEach(function(sample) {
+      let trackRun = MP4Demuxer.parseTrun(trun);
+      let samples = trackRun.samples;
+
+      samples.forEach(function (sample) {
         if (sample.duration === undefined) {
           sample.duration = defaultSampleDuration;
         }
@@ -554,10 +554,10 @@ class MP4Demuxer {
           sample.compositionTimeOffset = 0;
         }
         sample.pts = currentDts + sample.compositionTimeOffset;
-  
+
         currentDts += sample.duration;
       });
-  
+
       allSamples = allSamples.concat(samples);
     });
 
@@ -578,8 +578,8 @@ class MP4Demuxer {
   * @see ISO-BMFF-12/2015, Section 8.1.1
   * @see Rec. ITU-T H.264, 7.3.2.3.1
   **/
-  static findSeiNals(avcStream, samples, trackId) {
-    var
+  static findSeiNals (avcStream, samples, trackId) {
+    let
       avcView = new DataView(avcStream.buffer, avcStream.byteOffset, avcStream.byteLength),
       result = [],
       seiNal,
@@ -620,7 +620,7 @@ class MP4Demuxer {
           seiNal.dts = lastMatchedSample.dts;
         } else {
           // eslint-disable-next-line no-console
-          console.log("We've encountered a nal unit without data. See mux.js#233.");
+          console.log('We\'ve encountered a nal unit without data. See mux.js#233.');
           break;
         }
 
@@ -632,7 +632,7 @@ class MP4Demuxer {
     }
 
     return result;
-  };
+  }
 
   /**
     * Maps an offset in the mdat to a sample based on the the size of the samples.
@@ -644,11 +644,11 @@ class MP4Demuxer {
     *
     * @see ISO-BMFF-12/2015, Section 8.8.8
   **/
-  static mapToSample(offset, samples) {
-    var approximateOffset = offset;
+  static mapToSample (offset, samples) {
+    let approximateOffset = offset;
 
-    for (var i = 0; i < samples.length; i++) {
-      var sample = samples[i];
+    for (let i = 0; i < samples.length; i++) {
+      let sample = samples[i];
 
       if (approximateOffset < sample.size) {
         return sample;
@@ -658,10 +658,10 @@ class MP4Demuxer {
     }
 
     return null;
-  };
+  }
 
-  static discardEmulationPreventionBytes(data) {
-    var
+  static discardEmulationPreventionBytes (data) {
+    let
       length = data.byteLength,
       emulationPreventionBytesPositions = [],
       i = 1,
@@ -686,7 +686,7 @@ class MP4Demuxer {
     // Create a new array to hold the NAL unit data
     newLength = length - emulationPreventionBytesPositions.length;
     newData = new Uint8Array(newLength);
-    var sourceIndex = 0;
+    let sourceIndex = 0;
 
     for (i = 0; i < newLength; sourceIndex++, i++) {
       if (sourceIndex === emulationPreventionBytesPositions[0]) {
@@ -701,9 +701,9 @@ class MP4Demuxer {
     return newData;
   }
 
-  static parseTrun(trun) {
+  static parseTrun (trun) {
     const data = trun.data.subarray(trun.start, trun.end);
-    var
+    let
       result = {
         version: data[0],
         flags: new Uint8Array(data.subarray(1, 4)),
@@ -775,7 +775,7 @@ class MP4Demuxer {
     return result;
   }
 
-  static parseSampleFlags(flags) {
+  static parseSampleFlags (flags) {
     return {
       isLeading: (flags[0] & 0x0c) >>> 2,
       dependsOn: flags[0] & 0x03,
@@ -791,7 +791,7 @@ class MP4Demuxer {
     let initData = this.initData;
     const textTrack = {
       samples: []
-    }
+    };
     if (!initData) {
       this.resetInitSegment(data, this.audioCodec, this.videoCodec, false);
       initData = this.initData;
@@ -803,11 +803,11 @@ class MP4Demuxer {
       this.observer.trigger(Event.INIT_PTS_FOUND, { initPTS: initPTS });
     }
     if (initData && initData[1] && initData[1].type === 'video') {
-      //parse shit here
+      // parse shit here
       const trackId = initData.video && initData.video.id;
       const timescale = initData.video && initData.video.timescale;
       if (trackId && timescale) {
-        console.log('gotcha')
+        console.log('gotcha');
         textTrack.samples = this.parseCaptionNals(data, trackId)[1];
         textTrack.timescale = timescale;
         textTrack.initPTS = this.initPTS;
@@ -822,11 +822,11 @@ class MP4Demuxer {
   destroy () {}
 }
 
-var toUnsigned = function(value) {
+var toUnsigned = function (value) {
   return value >>> 0;
 };
 
-var toHexString = function(value) {
+let toHexString = function (value) {
   return ('00' + value.toString(16)).slice(-2);
 };
 
@@ -835,19 +835,19 @@ var toHexString = function(value) {
  * @param buffer {Uint8Array} a four-byte buffer to translate
  * @return {string} the corresponding string
  */
-var parseType = function(buffer) {
-  var result = '';
+let parseType = function (buffer) {
+  let result = '';
   result += String.fromCharCode(buffer[0]);
   result += String.fromCharCode(buffer[1]);
   result += String.fromCharCode(buffer[2]);
   result += String.fromCharCode(buffer[3]);
   return result;
-}
+};
 
-var extractSubArrayFromBoxes = function(boxes) {
+let extractSubArrayFromBoxes = function (boxes) {
   return boxes.map(box => {
     return box.data.subarray(box.start, box.end);
-  })
-}
+  });
+};
 
 export default MP4Demuxer;

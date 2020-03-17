@@ -51,7 +51,7 @@ class PassThroughRemuxer {
       videoCodec = 'avc1.42e01e';
     }
 
-    const tracks = {}
+    const tracks = {};
     if (initData.audio && initData.video) {
       tracks.audiovideo = {
         container: 'video/mp4',
@@ -73,11 +73,11 @@ class PassThroughRemuxer {
 
   remux (audioTrack, videoTrack, id3Track, textTrack, timeOffset, contiguous, accurateTimeOffset, rawData) {
     let observer = this.observer,
-    streamType = '',
-    computePTSDTS = (this.initPTS === undefined),
-    initPTS,
-    textSamples = textTrack && textTrack.samples,
-    inputTimeScale = videoTrack && videoTrack.timescale
+      streamType = '',
+      computePTSDTS = (this.initPTS === undefined),
+      initPTS,
+      textSamples = textTrack && textTrack.samples,
+      inputTimeScale = videoTrack && videoTrack.timescale;
 
     let initData = this.initData;
     if (!initData || !initData.length) {
@@ -124,15 +124,15 @@ class PassThroughRemuxer {
     const inputTimeScale = track.timescale;
     const initPTS = this.initPTS;
     track.samples = track.samples.map(sample => {
-      const seiNalUnits = parseSei(sample.escapedRBSP)
-      const userData = parseUserData(seiNalUnits)
+      const seiNalUnits = parseSei(sample.escapedRBSP);
+      const userData = parseUserData(seiNalUnits);
       return {
         type: 3,
         trackId: sample.trackId,
         pts: sample.pts,
         dts: sample.dts,
         bytes: userData
-      }
+      };
     });
     // consume samples
     if (length) {
@@ -150,6 +150,5 @@ class PassThroughRemuxer {
     // track.samples = [];
   }
 }
-
 
 export default PassThroughRemuxer;
