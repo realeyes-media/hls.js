@@ -185,8 +185,8 @@ export default class Fragment {
       if (!levelkey.iv) {
         decryptdata.iv = levelkey.iv = this.createInitializationVector(segmentNumber);
       } else {
-        decryptdata.iv = levelkey.iv
-      }     
+        decryptdata.iv = levelkey.iv;
+      }
     }
 
     return decryptdata || null;

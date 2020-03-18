@@ -3,7 +3,7 @@
  */
 import { logger } from '../utils/logger';
 import Event from '../events';
-import { parseInitSegment, getStartDTS, offsetStartDTS, parseCaptionNals, findBox } from '../utils/mp4-tools'
+import { parseInitSegment, getStartDTS, offsetStartDTS, parseTextTrackSamplesFromVideoSegment, findBox } from '../utils/mp4-tools';
 
 class MP4Demuxer {
   constructor (observer, remuxer) {
@@ -75,11 +75,9 @@ class MP4Demuxer {
       const trackId = initData.video && initData.video.id;
       const timescale = initData.video && initData.video.timescale;
       if (trackId && timescale) {
-        console.log('gotcha');
-        textTrack.samples = parseCaptionNals(data, trackId)[1];
+        textTrack.samples = parseTextTrackSamplesFromVideoSegment(data, trackId);
         textTrack.timescale = timescale;
         textTrack.initPTS = this.initPTS;
-        // console.log(captionNals)
       }
     }
     offsetStartDTS(initData, data, initPTS);

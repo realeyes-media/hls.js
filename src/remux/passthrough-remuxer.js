@@ -123,17 +123,6 @@ class PassThroughRemuxer {
     let length = track.samples.length, sample;
     const inputTimeScale = track.timescale;
     const initPTS = this.initPTS;
-    track.samples = track.samples.map(sample => {
-      const seiNalUnits = parseSei(sample.escapedRBSP);
-      const userData = parseUserData(seiNalUnits);
-      return {
-        type: 3,
-        trackId: sample.trackId,
-        pts: sample.pts,
-        dts: sample.dts,
-        bytes: userData
-      };
-    });
     // consume samples
     if (length) {
       for (let index = 0; index < length; index++) {
@@ -146,8 +135,6 @@ class PassThroughRemuxer {
         samples: track.samples
       });
     }
-
-    // track.samples = [];
   }
 }
 
