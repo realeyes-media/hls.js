@@ -1,4 +1,5 @@
 import { ElementaryStreamTypes } from '../loader/fragment';
+import { logger } from '../utils/logger';
 
 let USER_DATA_REGISTERED_ITU_T_T35 = 4,
   RBSP_TRAILING_BITS = 128;
@@ -495,8 +496,7 @@ export function findSeiNals (avcStream, samples, trackId) {
         seiNal.pts = lastMatchedSample.pts;
         seiNal.dts = lastMatchedSample.dts;
       } else {
-        // eslint-disable-next-line no-console
-        console.log('We\'ve encountered a nal unit without data. See mux.js#233.');
+        logger.log('We\'ve encountered a nal unit without data. See mux.js#233.');
         break;
       }
 
@@ -656,7 +656,8 @@ export function mapToSample (offset, samples) {
  * ```
  * It requires the timescale value from the mdhd to interpret.
  *
- * @param timescale {object} a hash of track ids to timescale values.
+ * @param initData {object} containing information about track
+ * @param fragment mp4 fragment data
  * @return {number} the earliest base media decode start time for the
  * fragment, in seconds
  */
@@ -775,7 +776,7 @@ export function discardEmulationPreventionBytes (data) {
 
 export function parseSegmentIndex (initSegment) {
   const moov = findBox(initSegment, ['moov'])[0];
-  const moovEndOffset = moov ? moov.end : null; // we need this in case we need to chop of garbage of the end of current data
+  const moovEndOffset = moov ? moov.end : null; // we need this in case we need to chop off garbage of the end of current data
 
   let index = 0;
   let sidx = findBox(initSegment, ['sidx']) as any;

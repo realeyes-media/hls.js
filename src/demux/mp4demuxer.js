@@ -70,7 +70,7 @@ class MP4Demuxer {
       this.initPTS = initPTS = startDTS - timeOffset;
       this.observer.trigger(Event.INIT_PTS_FOUND, { initPTS: initPTS });
     }
-    if (initData && initData[1] && initData[1].type === 'video') {
+    if (initData && initData.video) {
       const trackId = initData.video && initData.video.id;
       const timescale = initData.video && initData.video.timescale;
       if (trackId && timescale) {
