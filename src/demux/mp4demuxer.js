@@ -71,7 +71,6 @@ class MP4Demuxer {
       this.observer.trigger(Event.INIT_PTS_FOUND, { initPTS: initPTS });
     }
     if (initData && initData[1] && initData[1].type === 'video') {
-      // parse shit here
       const trackId = initData.video && initData.video.id;
       const timescale = initData.video && initData.video.timescale;
       if (trackId && timescale) {
