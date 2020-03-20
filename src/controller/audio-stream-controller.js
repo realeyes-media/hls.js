@@ -443,7 +443,7 @@ class AudioStreamController extends BaseStreamController {
     } else {
       let curDetails = track.details;
       if (curDetails && curDetails.initSegments) {
-        newDetails.initSegments = {...newDetails.initSegments, ...curDetails.initSegments}
+        newDetails.initSegments = { ...newDetails.initSegments, ...curDetails.initSegments };
       }
       newDetails.PTSKnown = false;
     }

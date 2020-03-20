@@ -6,6 +6,7 @@ import LevelKey from './level-key';
 export enum ElementaryStreamTypes {
   AUDIO = 'audio',
   VIDEO = 'video',
+  AUDIOVIDEO = 'audiovideo'
 }
 
 export default class Fragment {
@@ -14,9 +15,10 @@ export default class Fragment {
   private _decryptdata: LevelKey | null = null;
 
   // Holds the types of data this fragment supports
-  private _elementaryStreams: Record<ElementaryStreamTypes, boolean> = {
+  private _elementaryStreams: Record<ElementaryStreamTypes, boolean | null> = {
     [ElementaryStreamTypes.AUDIO]: false,
-    [ElementaryStreamTypes.VIDEO]: false
+    [ElementaryStreamTypes.VIDEO]: false,
+    [ElementaryStreamTypes.AUDIOVIDEO]: null
   };
 
   public rawProgramDateTime: string | null = null;
@@ -183,8 +185,8 @@ export default class Fragment {
       if (!levelkey.iv) {
         decryptdata.iv = levelkey.iv = this.createInitializationVector(segmentNumber);
       } else {
-        decryptdata.iv = levelkey.iv
-      }     
+        decryptdata.iv = levelkey.iv;
+      }
     }
 
     return decryptdata || null;

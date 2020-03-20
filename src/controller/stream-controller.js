@@ -773,7 +773,7 @@ class StreamController extends BaseStreamController {
     } else {
       let curDetails = curLevel.details;
       if (curDetails && curDetails.initSegments) {
-        newDetails.initSegments = {...newDetails.initSegments, ...curDetails.initSegments}
+        newDetails.initSegments = { ...newDetails.initSegments, ...curDetails.initSegments };
       }
       newDetails.PTSKnown = false;
     }

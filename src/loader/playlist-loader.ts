@@ -14,8 +14,8 @@ import EventHandler from '../event-handler';
 import { ErrorTypes, ErrorDetails } from '../errors';
 import { logger } from '../utils/logger';
 import { Loader, PlaylistContextType, PlaylistLoaderContext, PlaylistLevelType, LoaderCallbacks, LoaderResponse, LoaderStats, LoaderConfiguration } from '../types/loader';
-import MP4Demuxer from '../demux/mp4demuxer';
 import M3U8Parser from './m3u8-parser';
+import { parseSegmentIndex } from '../utils/mp4-tools';
 
 const { performance } = window;
 
@@ -403,7 +403,7 @@ class PlaylistLoader extends EventHandler {
       throw new Error('sidx request must be made with responseType of array buffer');
     }
 
-    const sidxInfo = MP4Demuxer.parseSegmentIndex(new Uint8Array(response.data));
+    const sidxInfo = parseSegmentIndex(new Uint8Array(response.data));
     // if provided fragment does not contain sidx, early return
     if (!sidxInfo) {
       return;
