@@ -19606,7 +19606,7 @@ function (_Observer) {
      * @type {string}
      */
     get: function get() {
-      return "0.12.3-re.6";
+      return "0.12.3-re.7";
     }
   }, {
     key: "Events",
@@ -21018,17 +21018,23 @@ function parseSei(bytes) {
 
 function parseTextTrackSamplesFromVideoSegment(data, videoTrackId) {
   var captionNals = parseCaptionNals(data, videoTrackId);
-  return captionNals.map(function (nal) {
-    var seiNalUnits = parseSei(nal.escapedRBSP);
-    var userData = parseUserData(seiNalUnits);
-    return {
-      type: 3,
-      trackId: nal.trackId,
-      pts: nal.pts,
-      dts: nal.dts,
-      bytes: userData
-    };
-  });
+  return captionNals.reduce(function (acc, nal) {
+    var seiNal = parseSei(nal.escapedRBSP);
+
+    if (seiNal.payload) {
+      var userData = parseUserData(seiNal);
+      var sample = {
+        type: 3,
+        trackId: nal.trackId,
+        pts: nal.pts,
+        dts: nal.dts,
+        bytes: userData
+      };
+      acc.push(sample);
+    }
+
+    return acc;
+  }, []);
 }
 /**
   * Parses out caption nals from an FMP4 segment's video tracks.
