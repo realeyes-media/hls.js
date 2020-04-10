@@ -256,17 +256,21 @@ export function parseSei (bytes) {
  */
 export function parseTextTrackSamplesFromVideoSegment (data, videoTrackId) {
   let captionNals = parseCaptionNals(data, videoTrackId);
-  return captionNals.map(nal => {
-    const seiNalUnits = parseSei(nal.escapedRBSP);
-    const userData = parseUserData(seiNalUnits);
-    return {
-      type: 3,
-      trackId: nal.trackId,
-      pts: nal.pts,
-      dts: nal.dts,
-      bytes: userData
-    };
-  });
+  return captionNals.reduce((acc, nal) => {
+    const seiNal = parseSei(nal.escapedRBSP);
+    if (seiNal.payload) {
+      const userData = parseUserData(seiNal);
+      const sample = {
+        type: 3,
+        trackId: nal.trackId,
+        pts: nal.pts,
+        dts: nal.dts,
+        bytes: userData
+      };
+      acc.push(sample);
+    }
+    return acc
+  }, [])
 }
 
 /**
