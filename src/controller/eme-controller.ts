@@ -307,8 +307,9 @@ class EMEController extends EventHandler {
           this.initDataType = event.initDataType;
 
           this.initData = event.initData;
-
-          this._configureEME();
+          if (this.manifestData) {
+            this._configureEME();
+          }
         }
         
       });
