@@ -19241,7 +19241,9 @@ function (_EventHandler) {
           _this4.initDataType = event.initDataType;
           _this4.initData = event.initData;
 
-          _this4._configureEME();
+          if (_this4.manifestData) {
+            _this4._configureEME();
+          }
         }
       });
     }
@@ -20331,7 +20333,7 @@ hls_Hls.defaultConfig = void 0;
 __webpack_require__.r(__webpack_exports__);
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "ElementaryStreamTypes", function() { return ElementaryStreamTypes; });
 /* harmony export (binding) */ __webpack_require__.d(__webpack_exports__, "default", function() { return Fragment; });
-/* harmony import */ var _Users_matthewthompson_Documents_html_player_hls_js_src_polyfills_number_isFinite__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./src/polyfills/number-isFinite */ "./src/polyfills/number-isFinite.js");
+/* harmony import */ var C_Users_Greg_Code_realeyes_hls_js_src_polyfills_number_isFinite__WEBPACK_IMPORTED_MODULE_0__ = __webpack_require__(/*! ./src/polyfills/number-isFinite */ "./src/polyfills/number-isFinite.js");
 /* harmony import */ var url_toolkit__WEBPACK_IMPORTED_MODULE_1__ = __webpack_require__(/*! url-toolkit */ "./node_modules/url-toolkit/src/url-toolkit.js");
 /* harmony import */ var url_toolkit__WEBPACK_IMPORTED_MODULE_1___default = /*#__PURE__*/__webpack_require__.n(url_toolkit__WEBPACK_IMPORTED_MODULE_1__);
 /* harmony import */ var _utils_logger__WEBPACK_IMPORTED_MODULE_2__ = __webpack_require__(/*! ../utils/logger */ "./src/utils/logger.js");
@@ -20525,11 +20527,11 @@ function () {
         return null;
       }
 
-      if (!Object(_Users_matthewthompson_Documents_html_player_hls_js_src_polyfills_number_isFinite__WEBPACK_IMPORTED_MODULE_0__["isFiniteNumber"])(this.programDateTime)) {
+      if (!Object(C_Users_Greg_Code_realeyes_hls_js_src_polyfills_number_isFinite__WEBPACK_IMPORTED_MODULE_0__["isFiniteNumber"])(this.programDateTime)) {
         return null;
       }
 
-      var duration = !Object(_Users_matthewthompson_Documents_html_player_hls_js_src_polyfills_number_isFinite__WEBPACK_IMPORTED_MODULE_0__["isFiniteNumber"])(this.duration) ? 0 : this.duration;
+      var duration = !Object(C_Users_Greg_Code_realeyes_hls_js_src_polyfills_number_isFinite__WEBPACK_IMPORTED_MODULE_0__["isFiniteNumber"])(this.duration) ? 0 : this.duration;
       return this.programDateTime + duration * 1000;
     }
   }, {
